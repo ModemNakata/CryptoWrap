@@ -4,18 +4,17 @@ CryptoWrap is a payment gateway/processor architected for secure, reliable, and 
 Providing a unified interface for both inbound and outbound payments. The project prioritizes simplicity and ease of integration, offering a lightweight and fast solution that operates as an extensible wrapper (API layer) for various blockchains.
 
 ### Coins
-- Monero
-- Litecoin (planned, not yet implemented)
+- Monero 🪙
+- Litecoin (planned, not yet implemented) 🚧
 
 #### Features
 - HTML page (customizable template) for accepting crypto payments in 3 different modes:
 1. WebSocket (fastest, default)
-2. HTTPS polling (more reliable for unstable connections, fallback)
-3. No-JavaScript
+2. HTTPS polling (more reliable for unstable connections, fallback) <- in progress 🚧
+3. No-JavaScript <- in progress 🚧
 
-- Accept and store coins in isolated `virtual` accounts. (allows track of `dynamic` amounts)
-Send/withdraw without locks or delays of other users' coins. (e.g. `output` management)
-Ideal for systems with multiple users, where funds must be safely separated.
+- Accept, store and send coins via isolated `virtual` accounts.
+For systems with multiple users, where funds must be safely separated and managed.
 
 
 ## Technology Stack
