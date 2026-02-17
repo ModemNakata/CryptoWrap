@@ -10,8 +10,9 @@ Providing a unified interface for both inbound and outbound payments. The projec
 #### Features
 - HTML page (customizable template) for accepting crypto payments in 3 different modes:
 1. WebSocket (fastest, default)
-2. HTTPS polling (more reliable for unstable connections, fallback) <- in progress 🚧
-3. No-JavaScript <- in progress 🚧
+🚧 Under construction:
+2. HTTPS polling (more reliable for unstable connections, fallback) 🚧
+3. No-JavaScript 🚧
 
 - Accept, store and send coins via isolated `virtual` accounts.
 For systems with multiple users, where funds must be safely separated and managed.
