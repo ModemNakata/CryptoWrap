@@ -23,7 +23,7 @@ For systems with multiple users, where funds must be safely separated and manage
 This project is built using a robust and modern technology stack, orchestrated within Docker containers for easy deployment and scalability:
 
 - **Reverse Proxy/Load Balancer:** Nginx (default) / Nginx + HAProxy
-- **Backend:** Rust (Axum Web framework)
+- **Backend:** Rust (Axum framework)
 - **Database Interaction & Migrations:** Sea-ORM
 - **Database:** PostgreSQL
 
