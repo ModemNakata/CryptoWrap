@@ -110,6 +110,13 @@
         button:active {
             transform: scale(0.98);
         }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        button:disabled:active {
+            transform: none;
+        }
         .btn-primary {
             background: linear-gradient(135deg, #3a5fc8 0%, #6a3ad9 100%);
             color: white;
@@ -130,6 +137,35 @@
         #captcha-input {
             margin-top: 0.75rem;
         }
+        .token-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            margin-top: 1rem;
+        }
+        .token-actions button {
+            flex: 1;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .btn-copy {
+            background: transparent;
+            color: #6a3ad9;
+            border: 2px solid #6a3ad9;
+        }
+        .btn-copy:hover {
+            background: #6a3ad9;
+            color: white;
+        }
+        .btn-save {
+            background: transparent;
+            color: #3a5fc8;
+            border: 2px solid #3a5fc8;
+        }
+        .btn-save:hover {
+            background: #3a5fc8;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -139,6 +175,10 @@
 
         <div class="input-group">
             <input type="password" id="token-input" placeholder="Enter your token">
+            <div class="token-actions" id="token-actions" style="display: none;">
+                <button id="copy-btn" class="btn-copy">Copy</button>
+                <button id="save-btn" class="btn-save">Save to File</button>
+            </div>
         </div>
 
         <div class="captcha-container">
@@ -155,11 +195,31 @@
 
     <script>
         let currentCaptcha = '';
+        let tokenRevealTimeout = null;
+        let originalToken = null;
 
         function generateCaptcha() {
             let captcha = '';
             return captcha;
         }
+
+        function showTokenActions() {
+            document.getElementById('token-actions').style.display = 'flex';
+        }
+
+        function hideTokenActions() {
+            document.getElementById('token-actions').style.display = 'none';
+        }
+
+        function checkTokenChanged() {
+            const input = document.getElementById('token-input');
+            if (originalToken !== null && input.value !== originalToken) {
+                hideTokenActions();
+                originalToken = null;
+            }
+        }
+
+        document.getElementById('token-input').addEventListener('input', checkTokenChanged);
 
         document.getElementById('captcha-image').addEventListener('click', () => {
             const captcha = generateCaptcha();
@@ -170,16 +230,50 @@
             setTimeout(() => { img.style.opacity = '1'; }, 150);
         });
 
-        document.getElementById('generate-token').addEventListener('click', () => {
-            const token = generateToken();
+        document.getElementById('generate-token').addEventListener('click', async () => {
+            const btn = document.getElementById('generate-token');
             const input = document.getElementById('token-input');
-            input.value = token;
 
-            // Temporarily show as plain text
-            input.type = 'text';
-            setTimeout(() => {
-                input.type = 'password';
-            }, 1500);
+            // Disable button while fetching
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            try {
+                const response = await fetch('/api/v1/auth/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate token');
+                }
+
+                const data = await response.json();
+                input.value = data.token;
+
+                // Clear any existing timeout to avoid multiple rapid clicks causing issues
+                if (tokenRevealTimeout) {
+                    clearTimeout(tokenRevealTimeout);
+                }
+
+                // Temporarily show as plain text
+                input.type = 'text';
+                btn.textContent = 'Your token is ready! Save it securely.';
+                tokenRevealTimeout = setTimeout(() => {
+                    input.type = 'password';
+                    btn.textContent = 'Generate New Token';
+                    btn.disabled = false;
+                    tokenRevealTimeout = null;
+                }, 3000);
+
+                // Store original token and show action buttons
+                originalToken = data.token;
+                showTokenActions();
+            } catch (error) {
+                alert('Error generating token: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Generate New Token';
+            }
         });
 
         document.getElementById('auth-btn').addEventListener('click', () => {
@@ -199,6 +293,45 @@
             console.log('Token:', token);
             console.log('CAPTCHA:', captcha);
             alert('Authentificated with token: ' + token);
+        });
+
+        document.getElementById('copy-btn').addEventListener('click', async () => {
+            const token = document.getElementById('token-input').value;
+            const input = document.getElementById('token-input');
+            const copyBtn = document.getElementById('copy-btn');
+            const originalText = copyBtn.textContent;
+
+            try {
+                // Try modern Clipboard API first
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(token);
+                } else {
+                    // Fallback for Safari and older browsers
+                    input.type = 'text';
+                    input.select();
+                    document.execCommand('copy');
+                    input.type = 'password';
+                }
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 1500);
+            } catch (error) {
+                alert('Failed to copy to clipboard: ' + error.message);
+            }
+        });
+
+        document.getElementById('save-btn').addEventListener('click', () => {
+            const token = document.getElementById('token-input').value;
+            const blob = new Blob([token], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cryptowrap-bearer-token.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         });
 
         function generateToken() {
