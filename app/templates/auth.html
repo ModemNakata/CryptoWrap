@@ -195,7 +195,7 @@
 
     <script>
         let currentCaptcha = '';
-        let tokenRevealTimeout = null;
+        window.tokenRevealTimeout = null; // Make global
         let originalToken = null;
 
         function generateCaptcha() {
@@ -264,16 +264,18 @@
                 let countdown = Math.ceil(cooldownMs / 1000);
                 btn.textContent = `Your token is ready! Save it securely. (${countdown}s)`;
                 
-                if (tokenRevealTimeout) {
-                    clearTimeout(tokenRevealTimeout);
+                if (window.tokenRevealTimeout) {
+                    clearTimeout(window.tokenRevealTimeout);
+                    window.tokenRevealTimeout = null; // Clear global reference
                 }
                 
-                const countdownInterval = setInterval(() => {
+                window.countdownInterval = setInterval(() => { // Make global
                     countdown--;
                     if (countdown > 0) {
                         btn.textContent = `Your token is ready! Save it securely. (${countdown}s)`;
                     } else {
-                        clearInterval(countdownInterval);
+                        clearInterval(window.countdownInterval);
+                        window.countdownInterval = null; // Clear global reference
                         input.type = 'password';
                         btn.textContent = 'Generate New Token';
                         btn.disabled = false;
@@ -294,6 +296,21 @@
             const token = document.getElementById('token-input').value;
             const captcha = document.getElementById('captcha-input').value;
             const input = document.getElementById('token-input');
+            const generateBtn = document.getElementById('generate-token'); // Get generate-token button
+
+            // Clear any active countdown on generate-token button
+            if (window.tokenRevealTimeout) {
+                clearTimeout(window.tokenRevealTimeout);
+                window.tokenRevealTimeout = null;
+            }
+            if (window.countdownInterval) {
+                clearInterval(window.countdownInterval);
+                window.countdownInterval = null;
+            }
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate New Token';
+            }
 
             // Ensure token field is password type
             input.type = 'password';
