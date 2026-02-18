@@ -24,6 +24,7 @@ This project is built using a robust and modern technology stack, orchestrated w
 
 - **Reverse Proxy/Load Balancer:** Nginx (default) / Nginx + HAProxy
 - **Backend:** Rust (Axum framework)
+- **API Documentation:** Swagger UI and OpenAPI.json
 - **Database Interaction & Migrations:** Sea-ORM
 - **Database:** PostgreSQL
 
