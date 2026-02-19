@@ -22,7 +22,7 @@ async fn main() -> Result<(), Error> {
     #[openapi(
         // modifiers(&SecurityAddon),
         // tags(
-            // (name = AUTH_TAG, description = "Authentication endpoints")
+            // (name = AUTH_TAG, description = "Auth endpoints")
         // )
     )]
     struct ApiDoc;

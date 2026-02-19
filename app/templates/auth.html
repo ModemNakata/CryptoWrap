@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authentificate</title>
+    <title>Authentication - CryptoWrap</title>
     <style>
         * {
             box-sizing: border-box;
@@ -27,7 +27,7 @@
             padding: 1rem;
         }
         .auth-container {
-            background: #1a1a2e;
+            background: #020204d6;
             padding: 1.25rem;
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
@@ -170,7 +170,7 @@
 </head>
 <body>
     <div class="auth-container">
-        <h2>Authentificate</h2>
+        <!-- <h2>Authentificate</h2> -->
         <p class="subtitle">Login or Register with your token</p>
 
         <div class="input-group">
@@ -189,7 +189,7 @@
             <input type="text" id="captcha-input" placeholder="Enter CAPTCHA">
         </div>
 
-        <button id="auth-btn" class="btn-primary">Authentificate</button>
+        <button id="auth-btn" class="btn-primary">Authenticate</button>
         <button id="generate-token" class="btn-secondary">Generate New Token</button>
     </div>
 
@@ -258,17 +258,17 @@
 
                 // Temporarily show as plain text
                 input.type = 'text';
-                
+
                 // Countdown timer (synced with tokenRevealTimeout)
                 const cooldownMs = 5000;
                 let countdown = Math.ceil(cooldownMs / 1000);
                 btn.textContent = `Your token is ready! Save it securely. (${countdown}s)`;
-                
+
                 if (window.tokenRevealTimeout) {
                     clearTimeout(window.tokenRevealTimeout);
                     window.tokenRevealTimeout = null; // Clear global reference
                 }
-                
+
                 window.countdownInterval = setInterval(() => { // Make global
                     countdown--;
                     if (countdown > 0) {
