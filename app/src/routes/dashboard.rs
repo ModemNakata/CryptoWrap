@@ -11,16 +11,16 @@ async fn dashboard() -> DashboardTemplate {
 }
 
 #[derive(Template, WebTemplate)]
-#[template(path = "auth.html")]
-struct AuthTemplate {}
+#[template(path = "welcome.html")]
+struct WelcomeTemplate {}
 
-async fn auth() -> AuthTemplate {
-    AuthTemplate {}
+async fn welcome() -> WelcomeTemplate {
+    WelcomeTemplate {}
 }
 
 pub fn router() -> Router {
     Router::new()
-        .route("/", get(auth))
+        .route("/", get(welcome))
         .route("/dashboard", get(dashboard))
 }
 
