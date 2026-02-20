@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:18.2 # latest
+    container_name: postgres_cryptowrap
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      # ideally use docker compose secrets for this
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    ports: # expose with 5432 by default
+      - "127.0.0.1:5432:5432" # localhost only
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    restart: unless-stopped #always/never
+    networks:
+      - db_network  # Both services share this network
+
+volumes:
+  postgres_data:
+
+networks:
+  db_network:  # Creates an isolated network for the services
+    driver: bridge
+
+# ->./_*~^%$#@!&()+=?|":;<{}''"

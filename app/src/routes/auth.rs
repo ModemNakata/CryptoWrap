@@ -25,7 +25,7 @@ pub async fn generate_token() -> Json<TokenResponse> {
     rand_bytes(&mut bytes).expect("Failed to generate secure random bytes");
 
     // Encode as hex for the token
-    let token = hex::encode(&bytes);
+    let token = hex::encode(bytes);
 
     Json(TokenResponse {
         token,
