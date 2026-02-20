@@ -69,40 +69,6 @@
         input[type="password"]::placeholder {
             color: #555;
         }
-        .captcha-container {
-            margin-bottom: 1rem;
-            max-width: 50%;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .captcha-image {
-            width: 100%;
-            height: 80px;
-            background: #0f0f1a;
-            border: 2px solid #333;
-            border-radius: 8px;
-            cursor: pointer;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .captcha-image:hover {
-            border-color: #6496ff;
-        }
-        .captcha-image:active {
-            transform: scale(0.98);
-        }
-        .captcha-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .captcha-hint {
-            text-align: center;
-            color: #555;
-            font-size: 0.75rem;
-        }
         button {
             width: 100%;
             padding: 0.75rem;
@@ -137,9 +103,6 @@
         .btn-secondary:hover {
             background: #3a5fc8;
             color: white;
-        }
-        #captcha-input {
-            margin-top: 0.75rem;
         }
         .token-actions {
             display: flex;
@@ -185,27 +148,13 @@
             </div>
         </div>
 
-        <div class="captcha-container">
-            <div class="captcha-image" id="captcha-image" title="Click to refresh">
-                <img src="/assets/001.jpg" alt="CAPTCHA" id="captcha-img">
-            </div>
-            <p class="captcha-hint">Click image to refresh</p>
-            <input type="text" id="captcha-input" placeholder="Enter CAPTCHA">
-        </div>
-
         <button id="auth-btn" class="btn-primary">Authenticate</button>
         <button id="generate-token" class="btn-secondary">Generate New Token</button>
     </div>
 
     <script>
-        let currentCaptcha = '';
         window.tokenRevealTimeout = null; // Make global
         let originalToken = null;
-
-        function generateCaptcha() {
-            let captcha = '';
-            return captcha;
-        }
 
         function showTokenActions() {
             document.getElementById('token-actions').style.display = 'flex';
@@ -224,15 +173,6 @@
         }
 
         document.getElementById('token-input').addEventListener('input', checkTokenChanged);
-
-        document.getElementById('captcha-image').addEventListener('click', () => {
-            const captcha = generateCaptcha();
-            document.getElementById('captcha-input').value = captcha;
-            // Add visual feedback
-            const img = document.getElementById('captcha-img');
-            img.style.opacity = '0.5';
-            setTimeout(() => { img.style.opacity = '1'; }, 150);
-        });
 
         document.getElementById('generate-token').addEventListener('click', async () => {
             const btn = document.getElementById('generate-token');
@@ -298,7 +238,6 @@
 
         document.getElementById('auth-btn').addEventListener('click', () => {
             const token = document.getElementById('token-input').value;
-            const captcha = document.getElementById('captcha-input').value;
             const input = document.getElementById('token-input');
             const generateBtn = document.getElementById('generate-token'); // Get generate-token button
 
@@ -323,14 +262,9 @@
                 console.log('Please enter or generate a token.');
                 return;
             }
-            if (!captcha) {
-                console.log('Please complete the CAPTCHA.');
-                return;
-            }
 
             // Handle login/register logic here
             console.log('Token:', token);
-            console.log('CAPTCHA:', captcha);
             console.log('Authentificated with token: ' + token);
         });
 
@@ -377,9 +311,6 @@
             let token = '';
             return token;
         }
-
-        // Initialize CAPTCHA on load
-        document.getElementById('captcha-input').value = generateCaptcha();
     </script>
 </body>
 </html>
