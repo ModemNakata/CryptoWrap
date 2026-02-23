@@ -1,4 +1,7 @@
+use crate::AppState;
 use axum::Json;
+use axum::extract::State;
+use base64::Engine;
 use openssl::rand::rand_bytes;
 use serde::Serialize;
 use utoipa::ToSchema;
@@ -20,19 +23,22 @@ pub struct TokenResponse {
         (status = 200, description = "Token generated successfully", body = TokenResponse)
     )
 )]
-pub async fn generate_token() -> Json<TokenResponse> {
-    let mut bytes = [0u8; 32];
+pub async fn generate_token(state: State<AppState>) -> Json<TokenResponse> {
+    let token_prefix = &state.token_prefix;
+
+    let mut bytes = [0u8; 90];
     rand_bytes(&mut bytes).expect("Failed to generate secure random bytes");
 
     // Encode as hex for the token
-    let token = hex::encode(bytes);
+    let token = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes);
+    let token_prefixed = format!("{}{}", token_prefix, token);
 
     Json(TokenResponse {
-        token,
+        token_prefixed,
         // token_type: "Bearer".to_string(),
     })
 }
 
-pub fn router() -> OpenApiRouter {
+pub fn router() -> OpenApiRouter<AppState> {
     OpenApiRouter::new().routes(routes!(generate_token))
 }

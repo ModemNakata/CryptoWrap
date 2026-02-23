@@ -1,6 +1,7 @@
 mod routes;
 use routes::auth;
 use routes::dashboard;
+use sea_orm::{Database, DatabaseConnection};
 use std::io::Error;
 use std::net::{Ipv4Addr, SocketAddr};
 use tokio::net::TcpListener;
@@ -14,10 +15,26 @@ use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
 
+use dotenvy::dotenv;
+use std::env;
+// use migration::{Migrator, MigratorTrait};
+
 // const AUTH_TAG: &str = "auth";
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    dotenv().ok();
+    let token_prefix = env::var("TOKEN_PREFIX").expect("TOKEN_PREFIX must be set");
+
+    let db_url = env::var("DB_URL").expect("DB_URL must be set");
+
+    let conn = Database::connect(db_url)
+        .await
+        .expect("Database connection failed");
+    // Migrator::up(&conn, None).await.unwrap();
+
+    let state = AppState { conn, token_prefix };
+
     #[derive(OpenApi)]
     #[openapi(
         // modifiers(&SecurityAddon),
@@ -47,6 +64,7 @@ async fn main() -> Result<(), Error> {
 
     let (api_router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest("/api/v1/auth", auth::router())
+        .with_state(state)
         .split_for_parts();
 
     let static_files = ServeDir::new("./assets");
@@ -63,4 +81,10 @@ async fn main() -> Result<(), Error> {
     tracing::info!("Serving!");
 
     axum::serve(listener, router.into_make_service()).await
+}
+
+#[derive(Clone)]
+struct AppState {
+    conn: DatabaseConnection,
+    token_prefix: String,
 }
