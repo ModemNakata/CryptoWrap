@@ -31,11 +31,11 @@ pub async fn generate_token(state: State<AppState>) -> Json<TokenResponse> {
 
     // Encode as hex for the token
     let token = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes);
-    let token_prefixed = format!("{}{}", token_prefix, token);
+    let token = format!("{}{}", token_prefix, token);
 
     Json(TokenResponse {
-        token_prefixed,
-        // token_type: "Bearer".to_string(),
+        token, //token prefixed_
+               // token_type: "Bearer".to_string(),
     })
 }
 
