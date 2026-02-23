@@ -65,6 +65,14 @@ async fn login_or_register(
         return StatusCode::BAD_REQUEST;
     }
 
+    if auth_request.token.len() < 100 {
+        return StatusCode::BAD_REQUEST;
+    }
+
+    if auth_request.token.len() > 200 {
+        return StatusCode::BAD_REQUEST;
+    }
+
     // Strip the token prefix before hashing
     let token_without_prefix = auth_request.token
         .strip_prefix(&state.token_prefix)
