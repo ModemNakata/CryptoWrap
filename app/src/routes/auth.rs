@@ -1,6 +1,6 @@
 use crate::AppState;
 use crate::entity::tokens;
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{Json, extract::State, http::StatusCode, routing::post};
 use base64::Engine;
 use openssl::rand::rand_bytes;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
@@ -47,15 +47,15 @@ pub async fn generate_token(state: State<AppState>) -> Json<TokenResponse> {
 }
 
 // no need to include this endpoint in openapi specification, because it's used only for web app (dashboard) to acquire session cookie
-#[utoipa::path(
-    post,
-    path = "/login_or_register",
-    request_body = AuthRequest,
-    responses(
-        (status = 200, description = "Authentication successful"),
-        (status = 400, description = "Invalid token")
-    )
-)]
+// #[utoipa::path(
+//     post,
+//     path = "/login_or_register",
+//     request_body = AuthRequest,
+//     responses(
+//         (status = 200, description = "Authentication successful"),
+//         (status = 400, description = "Invalid token")
+//     ),
+// )]
 async fn login_or_register(
     state: State<AppState>,
     cookies: Cookies,
@@ -65,9 +65,16 @@ async fn login_or_register(
         return StatusCode::BAD_REQUEST;
     }
 
-    let pepper = &state.blake3_hash_token_pepper;
-    let token_to_hash = format!("{}{}", auth_request.token, pepper);
-    let token_hash = blake3::hash(token_to_hash.as_bytes());
+    // Strip the token prefix before hashing
+    let token_without_prefix = auth_request.token
+        .strip_prefix(&state.token_prefix)
+        .unwrap_or(&auth_request.token);
+
+    let pepper_bytes = state.blake3_hash_token_pepper.as_bytes();
+    let mut key = [0u8; 32];
+    let copy_len = pepper_bytes.len().min(32);
+    key[..copy_len].copy_from_slice(&pepper_bytes[..copy_len]);
+    let token_hash = blake3::keyed_hash(&key, token_without_prefix.as_bytes());
     let token_hash_hex = token_hash.to_hex().to_string();
 
     let token_model = match tokens::Entity::find()
@@ -96,5 +103,5 @@ async fn login_or_register(
 pub fn router() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(generate_token))
-        .routes(routes!(login_or_register))
+        .route("/login_or_register", post(login_or_register))
 }
