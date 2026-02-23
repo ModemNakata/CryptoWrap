@@ -8,6 +8,7 @@ askama = "0.15.4"
 askama_web = { version = "0.15.1", features = ["axum-0.8"] }
 axum = "0.8.8"
 base64 = "0.22.1"
+blake3 = "1.8.3"
 dotenvy = "0.15.7"
 hex = "0.4.3"
 hyper = { version = "1.8.1", features = ["full"] }
@@ -15,6 +16,7 @@ openssl = "0.10.75"
 serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.49.0", features = ["full"] }
 tower = "0.5.3"
+tower-cookies = { version = "0.11.0", features = ["private"] }
 tower-http = { version = "0.6.8", features = ["trace", "fs"] }
 tracing = "0.1.44"
 tracing-subscriber = "0.3.22"

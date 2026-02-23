@@ -5,17 +5,20 @@ use sea_orm::{Database, DatabaseConnection};
 use std::io::Error;
 use std::net::{Ipv4Addr, SocketAddr};
 use tokio::net::TcpListener;
+use tower_cookies::{CookieManagerLayer, Key};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 // use utoipa::{
 //     Modify, OpenApi,
 //     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
 // };
+use dotenvy::dotenv;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
+mod entity;
 
-use dotenvy::dotenv;
+use hex;
 use std::env;
 // use migration::{Migrator, MigratorTrait};
 
@@ -27,13 +30,21 @@ async fn main() -> Result<(), Error> {
     let token_prefix = env::var("TOKEN_PREFIX").expect("TOKEN_PREFIX must be set");
 
     let db_url = env::var("DB_URL").expect("DB_URL must be set");
+    let app_key = env::var("APP_KEY").expect("APP_KEY must be set");
+    let blake3_hash_token_pepper =
+        env::var("BLAKE3_HASH_TOKEN_PEPPER").expect("BLAKE3_HASH_TOKEN_PEPPER must be set");
 
     let conn = Database::connect(db_url)
         .await
         .expect("Database connection failed");
     // Migrator::up(&conn, None).await.unwrap();
 
-    let state = AppState { conn, token_prefix };
+    let state = AppState {
+        conn,
+        token_prefix,
+        blake3_hash_token_pepper,
+        cookie_key: Key::from(&hex::decode(app_key).unwrap()),
+    };
 
     #[derive(OpenApi)]
     #[openapi(
@@ -64,6 +75,7 @@ async fn main() -> Result<(), Error> {
 
     let (api_router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest("/api/v1/auth", auth::router())
+        .layer(CookieManagerLayer::new())
         .with_state(state)
         .split_for_parts();
 
@@ -87,4 +99,6 @@ async fn main() -> Result<(), Error> {
 struct AppState {
     conn: DatabaseConnection,
     token_prefix: String,
+    blake3_hash_token_pepper: String,
+    cookie_key: Key,
 }

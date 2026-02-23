@@ -1,9 +1,11 @@
 use crate::AppState;
-use axum::Json;
-use axum::extract::State;
+use crate::entity::tokens;
+use axum::{Json, extract::State, http::StatusCode};
 use base64::Engine;
 use openssl::rand::rand_bytes;
-use serde::Serialize;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use serde::{Deserialize, Serialize};
+use tower_cookies::{Cookie, Cookies};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -11,6 +13,11 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 pub struct TokenResponse {
     pub token: String,
     // pub token_type: String,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct AuthRequest {
+    pub token: String,
 }
 
 /// Generate a secure bearer token
@@ -39,6 +46,55 @@ pub async fn generate_token(state: State<AppState>) -> Json<TokenResponse> {
     })
 }
 
+// no need to include this endpoint in openapi specification, because it's used only for web app (dashboard) to acquire session cookie
+#[utoipa::path(
+    post,
+    path = "/login_or_register",
+    request_body = AuthRequest,
+    responses(
+        (status = 200, description = "Authentication successful"),
+        (status = 400, description = "Invalid token")
+    )
+)]
+async fn login_or_register(
+    state: State<AppState>,
+    cookies: Cookies,
+    Json(auth_request): Json<AuthRequest>,
+) -> StatusCode {
+    if auth_request.token.is_empty() {
+        return StatusCode::BAD_REQUEST;
+    }
+
+    let pepper = &state.blake3_hash_token_pepper;
+    let token_to_hash = format!("{}{}", auth_request.token, pepper);
+    let token_hash = blake3::hash(token_to_hash.as_bytes());
+    let token_hash_hex = token_hash.to_hex().to_string();
+
+    let token_model = match tokens::Entity::find()
+        .filter(tokens::Column::TokenHash.eq(&token_hash_hex))
+        .one(&state.conn)
+        .await
+        .unwrap()
+    {
+        Some(token) => token,
+        None => {
+            let new_token = tokens::ActiveModel {
+                token_hash: Set(token_hash_hex),
+                ..Default::default()
+            };
+            new_token.insert(&state.conn).await.unwrap()
+        }
+    };
+
+    cookies
+        .private(&state.cookie_key)
+        .add(Cookie::new("user_id", token_model.id.to_string()));
+
+    StatusCode::OK
+}
+
 pub fn router() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().routes(routes!(generate_token))
+    OpenApiRouter::new()
+        .routes(routes!(generate_token))
+        .routes(routes!(login_or_register))
 }

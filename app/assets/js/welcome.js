@@ -81,7 +81,7 @@ document.getElementById('generate-token').addEventListener('click', async () => 
     }
 });
 
-document.getElementById('auth-btn').addEventListener('click', () => {
+document.getElementById('auth-btn').addEventListener('click', async () => {
     const token = document.getElementById('token-input').value;
     const input = document.getElementById('token-input');
     const generateBtn = document.getElementById('generate-token'); // Get generate-token button
@@ -104,13 +104,25 @@ document.getElementById('auth-btn').addEventListener('click', () => {
     input.type = 'password';
 
     if (!token) {
-        console.log('Please enter or generate a token.');
+        alert('Please enter or generate a token.');
         return;
     }
 
-    // Handle login/register logic here
-    console.log('Token:', token);
-    console.log('Authentificated with token: ' + token);
+    try {
+        const response = await fetch('/api/v1/auth/login_or_register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+
+        if (response.ok) {
+            window.location.href = '/dashboard';
+        } else {
+            throw new Error('Authentication failed. Please check your token.');
+        }
+    } catch (error) {
+        alert(error.message);
+    }
 });
 
 document.getElementById('copy-btn').addEventListener('click', async () => {
