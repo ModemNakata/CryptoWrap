@@ -14,7 +14,10 @@ use tower_http::trace::TraceLayer;
 //     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
 // };
 use dotenvy::dotenv;
-use utoipa::OpenApi;
+use utoipa::{
+    Modify, OpenApi, openapi::security::ApiKey, openapi::security::ApiKeyValue,
+    openapi::security::SecurityScheme,
+};
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
 mod entity;
@@ -50,7 +53,7 @@ async fn main() -> Result<(), Error> {
 
     #[derive(OpenApi)]
     #[openapi(
-        // modifiers(&SecurityAddon),
+        modifiers(&SecurityAddon),
         info(
             title = "CryptoWrap",
             version = "0.1.3",
@@ -67,18 +70,18 @@ async fn main() -> Result<(), Error> {
     )]
     struct ApiDoc;
 
-    // struct SecurityAddon;
+    struct SecurityAddon;
 
-    // impl Modify for SecurityAddon {
-    // fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-    // if let Some(components) = openapi.components.as_mut() {
-    // components.add_security_scheme(
-    // "api_key",
-    // SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("todo_apikey"))),
-    // )
-    // }
-    // }
-    // }
+    impl Modify for SecurityAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                components.add_security_scheme(
+                    "api_key",
+                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("X-API-Key"))),
+                )
+            }
+        }
+    }
 
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)

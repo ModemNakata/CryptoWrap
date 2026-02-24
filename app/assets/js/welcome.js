@@ -29,7 +29,7 @@ document.getElementById('generate-token').addEventListener('click', async () => 
 
     try {
         const response = await fetch('/api/v1/auth/token', {
-            method: 'POST',
+            method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
 

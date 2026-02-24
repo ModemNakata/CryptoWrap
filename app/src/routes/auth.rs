@@ -26,7 +26,7 @@ pub struct AuthRequest {
 /// Returns a newly generated cryptographically secure random bearer token.
 #[utoipa::path(
     get,
-    path = "/token",
+    path = "/token", // API key (permament, can be refreshed/rotated), not JWT (no db lookup, temporary, can expire, contain data encrypted)
     tag = AUTH_TAG,
     responses(
         (status = 200, description = "Token generated successfully", body = TokenResponse)
