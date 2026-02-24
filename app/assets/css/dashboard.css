@@ -1,0 +1,426 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #0a0a0f;
+    background-image:
+        linear-gradient(rgba(100, 150, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(100, 150, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(rgba(100, 150, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(100, 150, 255, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
+    background-position: 0 0, 0 0, 0 0, 0 0;
+    color: #e0e0e0;
+    padding: 0;
+}
+
+.dashboard-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.dashboard-header {
+    background: #020204d6;
+    border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-left {
+    flex: 1;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #6a96ff;
+    margin-bottom: 0.25rem;
+}
+
+.header-subtitle {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.header-right {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.btn-logout {
+    padding: 0.6rem 1.2rem;
+    background: transparent;
+    color: #ff6b6b;
+    border: 2px solid #ff6b6b;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btn-logout:active {
+    transform: scale(0.98);
+}
+
+/* Main Content */
+.dashboard-content {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.section {
+    background: #020204d6;
+    border: 1px solid rgba(100, 150, 255, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.section h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1.25rem;
+    color: #6a96ff;
+}
+
+/* Account Info Section */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.info-card {
+    background: rgba(106, 150, 255, 0.05);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(106, 150, 255, 0.15);
+}
+
+.info-label {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.info-value {
+    font-size: 1.1rem;
+    color: #e0e0e0;
+    font-weight: 500;
+}
+
+.info-value.active {
+    color: #4ade80;
+}
+
+/* Balances Section */
+.balance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.balance-card {
+    padding: 1.5rem;
+    border-radius: 10px;
+    border: 2px solid;
+    background: linear-gradient(135deg, rgba(106, 150, 255, 0.08) 0%, rgba(106, 150, 255, 0.02) 100%);
+}
+
+.balance-card.monero {
+    border-color: #ff8c42;
+}
+
+.balance-card.litecoin {
+    border-color: #a5a5ff;
+}
+
+.balance-card.total {
+    border-color: #6a96ff;
+}
+
+.coin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.coin-name {
+    font-size: 0.9rem;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.coin-symbol {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #6a96ff;
+}
+
+.balance-amount {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    margin-bottom: 0.5rem;
+}
+
+.balance-usd,
+.balance-change {
+    font-size: 0.95rem;
+    color: #aaa;
+}
+
+.balance-change {
+    color: #4ade80;
+}
+
+/* Statistics Section */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: rgba(106, 150, 255, 0.05);
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid rgba(106, 150, 255, 0.15);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #6a96ff;
+    margin-bottom: 0.5rem;
+}
+
+.stat-meta {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Actions Section */
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+}
+
+.btn-action {
+    padding: 1.25rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.btn-action.primary {
+    background: linear-gradient(135deg, #3a5fc8 0%, #6a3ad9 100%);
+    color: white;
+}
+
+.btn-action.primary:hover {
+    background: linear-gradient(135deg, #6a3ad9 0%, #3a5fc8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(58, 95, 200, 0.3);
+}
+
+.btn-action.secondary {
+    background: transparent;
+    color: #6a96ff;
+    border: 2px solid #6a96ff;
+}
+
+.btn-action.secondary:hover {
+    background: #6a96ff;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-action:active {
+    transform: scale(0.98);
+}
+
+.action-icon {
+    font-size: 1.5rem;
+}
+
+.action-label {
+    font-weight: 500;
+}
+
+/* API Info Section */
+.api-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.api-item {
+    background: rgba(106, 150, 255, 0.05);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(106, 150, 255, 0.15);
+}
+
+.api-label {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.api-code {
+    display: block;
+    background: #0f0f1a;
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: #6a96ff;
+    word-break: break-all;
+    margin-bottom: 0.5rem;
+}
+
+.btn-copy-api {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: #6a96ff;
+    border: 2px solid #6a96ff;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    align-self: fit-content;
+    transition: all 0.3s ease;
+}
+
+.btn-copy-api:hover {
+    background: #6a96ff;
+    color: white;
+}
+
+.link-docs {
+    color: #6a96ff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.link-docs:hover {
+    color: #a5c8ff;
+    text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .header-left {
+        width: 100%;
+    }
+
+    .header-right {
+        width: 100%;
+    }
+
+    .btn-logout {
+        width: 100%;
+    }
+
+    .dashboard-content {
+        padding: 1rem;
+    }
+
+    .section {
+        padding: 1rem;
+    }
+
+    .info-grid,
+    .balance-grid,
+    .stats-grid,
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .balance-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .section h2 {
+        font-size: 1.1rem;
+    }
+
+    .logo {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 0.5rem;
+    }
+
+    .section {
+        border-radius: 8px;
+        padding: 0.75rem;
+    }
+
+    .section h2 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .balance-amount {
+        font-size: 1.4rem;
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+    }
+
+    .btn-action {
+        padding: 1rem;
+        font-size: 0.8rem;
+    }
+
+    .action-icon {
+        font-size: 1.2rem;
+    }
+}

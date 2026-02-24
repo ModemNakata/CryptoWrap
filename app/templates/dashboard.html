@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CryptoWrap</title>
+    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/assets/css/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1 class="logo">CryptoWrap</h1>
+                <p class="header-subtitle">Cryptocurrency Gateway Dashboard</p>
+            </div>
+            <div class="header-right">
+                <button class="btn-logout" id="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="dashboard-content">
+            <!-- Account Info Section -->
+            <section class="section account-info">
+                <h2>Account Overview</h2>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <p class="info-label">Account ID</p>
+                        <p class="info-value">acc_8f7d3a2b9e1c4f5g</p>
+                    </div>
+                    <div class="info-card">
+                        <p class="info-label">Account Status</p>
+                        <p class="info-value active">Active</p>
+                    </div>
+                    <div class="info-card">
+                        <p class="info-label">Member Since</p>
+                        <p class="info-value">2025-06-15</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Balances Section -->
+            <section class="section balances">
+                <h2>Your Balances</h2>
+                <div class="balance-grid">
+                    <div class="balance-card monero">
+                        <div class="coin-header">
+                            <span class="coin-name">Monero</span>
+                            <span class="coin-symbol">XMR</span>
+                        </div>
+                        <p class="balance-amount">12.3450 XMR</p>
+                        <p class="balance-usd">≈ $2,456.78 USD</p>
+                    </div>
+                    <div class="balance-card litecoin">
+                        <div class="coin-header">
+                            <span class="coin-name">Litecoin</span>
+                            <span class="coin-symbol">LTC</span>
+                        </div>
+                        <p class="balance-amount">0.5234 LTC</p>
+                        <p class="balance-usd">≈ $89.45 USD</p>
+                    </div>
+                    <div class="balance-card total">
+                        <div class="coin-header">
+                            <span class="coin-name">Total Value</span>
+                            <span class="coin-symbol">USD</span>
+                        </div>
+                        <p class="balance-amount">$2,546.23</p>
+                        <p class="balance-change">↑ 2.35% (24h)</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Statistics Section -->
+            <section class="section statistics">
+                <h2>Usage Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <p class="stat-label">Total Transactions</p>
+                        <p class="stat-value">342</p>
+                        <p class="stat-meta">This month: 28</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-label">Total Received</p>
+                        <p class="stat-value">45.6234 XMR</p>
+                        <p class="stat-meta">≈ $9,124.68 USD</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-label">Total Sent</p>
+                        <p class="stat-value">33.2784 XMR</p>
+                        <p class="stat-meta">≈ $6,655.68 USD</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-label">API Calls (24h)</p>
+                        <p class="stat-value">1,247</p>
+                        <p class="stat-meta">Limit: 10,000/day</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-label">Success Rate</p>
+                        <p class="stat-value">99.8%</p>
+                        <p class="stat-meta">Failed: 2 transactions</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-label">Avg. Confirmation</p>
+                        <p class="stat-value">4.2 min</p>
+                        <p class="stat-meta">Network average</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Actions Section -->
+            <section class="section actions">
+                <h2>Quick Actions</h2>
+                <div class="actions-grid">
+                    <button class="btn-action primary" id="withdraw-btn">
+                        <span class="action-icon">💸</span>
+                        <span class="action-label">Withdraw Funds</span>
+                    </button>
+                    <button class="btn-action secondary" id="receive-btn">
+                        <span class="action-icon">📥</span>
+                        <span class="action-label">Receive Payment</span>
+                    </button>
+                    <button class="btn-action secondary" id="history-btn">
+                        <span class="action-icon">📋</span>
+                        <span class="action-label">Transaction History</span>
+                    </button>
+                    <button class="btn-action secondary" id="settings-btn">
+                        <span class="action-icon">⚙️</span>
+                        <span class="action-label">Account Settings</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- API Endpoints Section -->
+            <section class="section api-info">
+                <h2>API Information</h2>
+                <div class="api-details">
+                    <div class="api-item">
+                        <p class="api-label">API Base URL</p>
+                        <code class="api-code">https://api.cryptowrap.local/v1</code>
+                    </div>
+                    <div class="api-item">
+                        <p class="api-label">API Key</p>
+                        <code class="api-code">sk_live_8f7d3a2b9e1c4f5g6h8j9k2l3m4n5o6p</code>
+                        <button class="btn-copy-api">Copy</button>
+                    </div>
+                    <div class="api-item">
+                        <p class="api-label">Documentation</p>
+                        <a href="/docs" class="link-docs">View API Docs (Swagger UI)</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/assets/js/dashboard.js"></script>
+</body>
+</html>
