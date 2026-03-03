@@ -12,8 +12,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
     restart: unless-stopped #always/never
-    networks:
-      - db_network  # Both services share this network
+    # networks: # it actually isolates container from outside network (e.g. ports : local forward won't work)
+      # - db_network  # Both services share this network
 
 
   # add redis container for stateless rate-limiting
@@ -22,8 +22,8 @@ services:
 volumes:
   postgres_data:
 
-networks:
-  db_network:  # Creates an isolated network for the services
-    driver: bridge
+# networks: 
+  # db_network:  # Creates an isolated network for the services 
+    # driver: bridge
 
 # ->./_*~^%$#@!&()+=?|":;<{}''"

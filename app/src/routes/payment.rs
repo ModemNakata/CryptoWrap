@@ -115,12 +115,11 @@ pub async fn create_invoice(
     let invoice_uuid = invoice.invoice_id;
 
     let wallet_address = "...".to_string();
-    let amount_requested = "...".to_string();
 
     Ok(Json(CreateInvoiceResponse {
         invoice_uuid,
         wallet_address,
-        amount_requested,
+        amount_requested: amount_requested.to_string(),
         currency: invoice_request.currency,
     }))
 }
