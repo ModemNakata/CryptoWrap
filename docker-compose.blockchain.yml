@@ -1,6 +1,7 @@
 services:
   monero-wr:
     image: gcr.io/distroless/cc-debian12:nonroot
+    user: "1000:1000" # check user id with `id`
     volumes:
       - ./crypto/monero:/monero
     ports:
@@ -10,11 +11,11 @@ services:
       "--rpc-bind-port=1808",
       "--rpc-bind-ip=0.0.0.0", # fine for docker container with forwarded to localhsot
       "--confirm-external-bind", # explicity allow previous argument
-      "--wallet-file=/monero/cw_testnet_xmr",
-      "--wallet-dir=/monero/",
+      "--wallet-file=/monero/wd/cw_testnet_xmr", 
+      # "--wallet-dir=/monero/", # chown -R 65532:65532 crypto/monero/wd/
       "--disable-rpc-login",
-      "--daemon-address testnet.xmr-tw.org:28081",
-      "--tesnet",
+      "--daemon-address=testnet.xmr-tw.org:28081",
+      "--testnet",
       #
       "--password=${XMR_PASSWD}",
       # --password-file <arg>
