@@ -1,7 +1,7 @@
 services:
   monero-wr:
     image: gcr.io/distroless/cc-debian12:nonroot
-    user: "1000:1000" # check user id with `id`
+    user: "1000:1000" # check host user id with `id`
     volumes:
       - ./crypto/monero:/monero
     ports:
@@ -13,6 +13,7 @@ services:
       "--confirm-external-bind", # explicity allow previous argument
       "--wallet-file=/monero/wd/cw_testnet_xmr", 
       # "--wallet-dir=/monero/", # chown -R 65532:65532 crypto/monero/wd/
+      # (optionally if permission error, though user 1000 (same id as on host) should fix it)
       "--disable-rpc-login",
       "--daemon-address=testnet.xmr-tw.org:28081",
       "--testnet",
@@ -22,6 +23,7 @@ services:
       # 
       # --tx-notify <arg>
       # --config-file <arg>
+      "--shared-ringdb-dir=/monero/wd/.shared-ringdb",
     ]
     restart: unless-stopped
     security_opt:
