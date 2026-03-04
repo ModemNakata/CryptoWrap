@@ -3,12 +3,17 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "tokens")]
+#[sea_orm(table_name = "deposits")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    pub token_hash: String,
-    pub created_at: DateTime,
+    pub deposit_id: Uuid,
+    pub currency: String,
+    pub network: String,
+    pub wallet_address: String,
+    pub amount_received: String,
+    pub payment_status: String,
+    pub confirmations: Option<i32>,
+    pub txid: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

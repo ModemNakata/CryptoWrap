@@ -1,7 +1,8 @@
 mod routes;
 use routes::auth;
 use routes::dashboard;
-use routes::payment;
+// use routes::payment;
+use routes::deposit;
 use sea_orm::{Database, DatabaseConnection};
 use std::io::Error;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -100,7 +101,8 @@ async fn main() -> Result<(), Error> {
 
     let (api_router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest("/api/v1/auth", auth::router())
-        .nest("/api/v1/payments", payment::router())
+        // .nest("/api/v1/payments", payment::router())
+        .nest("/api/v1/deposit", deposit::router())
         .layer(CookieManagerLayer::new())
         .with_state(state)
         .split_for_parts();

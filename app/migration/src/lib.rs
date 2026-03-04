@@ -3,6 +3,7 @@ pub use sea_orm_migration::prelude::*;
 mod m20260220_121747_tokens_table;
 mod m20260226_092935_invoices_table;
 mod m20260226_092939_monero_wallet;
+mod m20260304_200054_deposits_table;
 
 pub struct Migrator;
 
@@ -13,6 +14,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260220_121747_tokens_table::Migration),
             Box::new(m20260226_092935_invoices_table::Migration),
             Box::new(m20260226_092939_monero_wallet::Migration),
+            Box::new(m20260304_200054_deposits_table::Migration),
         ]
     }
 }
