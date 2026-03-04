@@ -11,7 +11,7 @@ pub struct Model {
     pub minor_index: i32,
     pub wallet_address: String,
     pub created_at: DateTime,
-    pub last_used_at: DateTime,
+    pub last_used_at: Option<DateTime>,
     pub blockchain_height: i32,
     pub is_available: bool,
 }

@@ -21,11 +21,12 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(
-                        date_time("last_used_at"), // .default(Expr::current_timestamp())
-                                                   // .not_null(),
+                        date_time("last_used_at").null(), // .default(Expr::current_timestamp())
+                                                          // .not_null(),
                     )
                     .col(integer("blockchain_height").not_null())
                     .col(boolean("is_available").default(true).not_null())
+                    // also can add `is being used in` with some reference to invoice or deposit (row in table)
                     .to_owned(),
             )
             .await

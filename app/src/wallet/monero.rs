@@ -136,7 +136,7 @@ pub async fn get_transfers(
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateAccountParams {
-    pub label: Option<String>,
+    // pub label: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -147,10 +147,10 @@ pub struct CreateAccountResponse {
 
 pub async fn create_account(
     wallet: &MoneroWallet,
-    label: Option<&str>,
+    // label: Option<&str>,
 ) -> Result<CreateAccountResponse, MoneroError> {
     let params = CreateAccountParams {
-        label: label.map(|s| s.to_string()),
+        // label: label.map(|s| s.to_string()),
     };
     wallet
         .rpc_request("create_account", serde_json::to_value(params)?)
@@ -160,28 +160,28 @@ pub async fn create_account(
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateAddressParams {
     pub account_index: u32,
-    pub label: Option<String>,
-    pub count: Option<u32>,
+    // pub label: Option<String>,
+    // pub count: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateAddressResponse {
     pub address: String,
     pub address_index: u32,
-    pub address_indices: Option<Vec<u32>>,
-    pub addresses: Option<Vec<String>>,
+    // pub address_indices: Option<Vec<u32>>,
+    // pub addresses: Option<Vec<String>>,
 }
 
 pub async fn create_address(
     wallet: &MoneroWallet,
     account_index: u32,
-    label: Option<&str>,
-    count: Option<u32>,
+    // label: Option<&str>,
+    // count: Option<u32>,
 ) -> Result<CreateAddressResponse, MoneroError> {
     let params = CreateAddressParams {
         account_index,
-        label: label.map(|s| s.to_string()),
-        count,
+        // label: label.map(|s| s.to_string()),
+        // count,
     };
     wallet
         .rpc_request("create_address", serde_json::to_value(params)?)

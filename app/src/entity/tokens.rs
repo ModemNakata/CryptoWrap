@@ -9,6 +9,7 @@ pub struct Model {
     pub id: Uuid,
     pub token_hash: String,
     pub created_at: DateTime,
+    pub monero_major_index: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

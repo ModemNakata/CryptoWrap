@@ -1,10 +1,12 @@
 use crate::AppState;
 use crate::PAYMENT_TAG;
 use crate::entity::deposits;
-use crate::routes::auth_helper::extract_api_key;
+use crate::routes::auth_helper::extract_user_row;
+use crate::wallet::monero_helper;
 use axum::{Json, extract::Query, extract::State, http::HeaderMap, http::StatusCode};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use strum_macros::Display;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -21,16 +23,17 @@ use uuid::Uuid;
     responses(
         (status = 200, description = "Deposit address generated successfully", body = CreateDepositResponse),
         (status = 401, description = "Token is missing or invalid"),
+        (status = 500, description = "Internal server error", body = String),
     )
 )]
 pub async fn create(
     state: State<AppState>,
     headers: HeaderMap,
     Json(deposit_request): Json<CreateDepositRequest>,
-) -> Result<Json<CreateDepositResponse>, StatusCode> {
-    let _token_id = extract_api_key(&state, &headers)
+) -> Result<Json<CreateDepositResponse>, (StatusCode, String)> {
+    let user_row = extract_user_row(&state, &headers)
         .await
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+        .ok_or((StatusCode::UNAUTHORIZED, "Unauthorized".to_string()))?;
 
     let network = if let Some(net) = deposit_request.network {
         net.to_string()
@@ -40,17 +43,51 @@ pub async fn create(
         }
     };
 
+    // before using next code, first check for what coin is selected/specified, because next code handles only monero xmr
+    // we have only one option in createdepositrequest so it's fine for now
+
+    // get monero wallet address for this payment
+    // first check if user has monero wallet initialized (e.g. has major wallet index in users db)
+    let major_wallet_index = monero_helper::ensure_monero_major_wallet_index_for_user(
+        &user_row,
+        &state.monero_wallet,
+        &state.conn,
+    )
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            // Json(json!({"message": format!("Failed to initialize Monero wallet: {}", e)})),
+            format!("Failed to initialize Monero wallet: {}", e),
+        )
+    })?;
+
+    // use this index to create new subaddress (or reuse first available subaddress under this account (major index))
+    let free_subaddress = monero_helper::get_free_monero_subaddress_with_major_index(
+        major_wallet_index,
+        &state.monero_wallet,
+        &state.conn,
+    )
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            // Json(json!({"message": format!("Failed to get Monero subaddress: {}", e)})),
+            format!("Failed to get Monero subaddress: {}", e),
+        )
+    })?;
+
+    let wallet_address = free_subaddress;
+
     let deposit = deposits::ActiveModel {
         currency: Set(deposit_request.currency.to_string()),
         network: Set(network),
         payment_status: Set(DepositStatus::Waiting.to_string()),
-        wallet_address: Set("someaddr".to_string()),
+        wallet_address: Set(wallet_address.clone()),
         ..Default::default()
     };
     let deposit = deposit.insert(&state.conn).await.unwrap();
     let deposit_uuid = deposit.deposit_id;
-
-    let wallet_address = "...".to_string();
 
     Ok(Json(CreateDepositResponse {
         deposit_uuid,

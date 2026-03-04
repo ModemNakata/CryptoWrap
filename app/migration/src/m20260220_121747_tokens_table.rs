@@ -23,6 +23,13 @@ impl MigrationTrait for Migration {
                             .default(Expr::current_timestamp())
                             .not_null(),
                     )
+                    //
+                    // some meta information about this account can be added here
+                    .col(integer("monero_major_index").null()) // account index for such payments as invoices and deposits | this keeps user funds isolated from other user'
+                    // ^ it is null if never used <> // maybe also should specify monero wallet? (separate, use multiple wallets, probably)
+                    // for virtual accounts (static addresses), can be used a different table
+                    //.col( `litecoin derivation here, as///for examlpe` )
+                    //
                     .to_owned(),
             )
             .await

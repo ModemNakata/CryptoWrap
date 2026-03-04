@@ -5,7 +5,8 @@ use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 /// Extract and validate API key from headers, return token ID if valid
-pub async fn extract_api_key(state: &AppState, headers: &HeaderMap) -> Option<Uuid> {
+// pub async fn extract_api_key(state: &AppState, headers: &HeaderMap) -> Option<Uuid> {
+pub async fn extract_user_row(state: &AppState, headers: &HeaderMap) -> Option<tokens::Model> {
     let api_key = headers.get("X-API-Key").and_then(|v| v.to_str().ok())?;
 
     let token_without_prefix = api_key.strip_prefix(&state.token_prefix).unwrap_or(api_key);
@@ -23,5 +24,5 @@ pub async fn extract_api_key(state: &AppState, headers: &HeaderMap) -> Option<Uu
         .await
         .ok()??;
 
-    Some(token_model.id)
+    Some(token_model)
 }

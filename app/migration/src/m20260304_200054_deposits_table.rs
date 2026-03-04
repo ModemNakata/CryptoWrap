@@ -24,6 +24,8 @@ impl MigrationTrait for Migration {
                     .col(string("payment_status").string_len(20).not_null())
                     .col(integer("confirmations").null())
                     .col(string("txid").null()) // transaction hash
+                    // theoretically major/minor indexes or uuid of row in (coin) table wallet can be added
+                    // (monero accounts / subaddresses)
                     .to_owned(),
             )
             .await
