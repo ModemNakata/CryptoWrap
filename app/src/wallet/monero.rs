@@ -190,7 +190,8 @@ pub async fn create_address(
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetHeightResponse {
-    pub height: u64,
+    // pub height: u64,
+    pub height: i32,
 }
 
 pub async fn get_height(wallet: &MoneroWallet) -> Result<GetHeightResponse, MoneroError> {
