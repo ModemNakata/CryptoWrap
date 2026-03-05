@@ -2,8 +2,9 @@
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{Value, json};
 use thiserror::Error;
+use tracing::{debug, instrument};
 
 #[derive(Error, Debug)]
 pub enum MoneroError {
@@ -30,6 +31,7 @@ impl MoneroWallet {
         }
     }
 
+    #[instrument(skip(self, params), fields(method = %method))]
     async fn rpc_request<T: for<'de> Deserialize<'de>>(
         &self,
         method: &str,
@@ -42,6 +44,8 @@ impl MoneroWallet {
             "params": params
         });
 
+        debug!(request = %pretty_json(&request), "Monero RPC request");
+
         let response = self
             .client
             .post(&self.url)
@@ -50,7 +54,9 @@ impl MoneroWallet {
             .send()
             .await?;
 
-        let rpc_response: serde_json::Value = response.json().await?;
+        let rpc_response: Value = response.json().await?;
+
+        debug!(response = %pretty_json(&rpc_response), "Monero RPC response");
 
         if let Some(error) = rpc_response.get("error") {
             return Err(MoneroError::Rpc(error.to_string()));
@@ -64,12 +70,16 @@ impl MoneroWallet {
     }
 }
 
+fn pretty_json(value: &Value) -> String {
+    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transfer {
     pub address: String,
     pub amount: u64,
     pub amounts: Option<Vec<u64>>,
-    pub confirmations: u64,
+    pub confirmations: Option<i32>,
     pub double_spend_seen: Option<bool>,
     pub fee: Option<u64>,
     pub height: u64,

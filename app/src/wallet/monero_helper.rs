@@ -175,13 +175,13 @@ pub async fn check_for_first_inbound_transfer_confirmed_or_mempool_with_min_heig
 
     let inbound_transfers = transfers_response.inbound.unwrap_or_default();
     if let Some(inbound_transfer) = inbound_transfers.iter().find(|_| true) {
-        let confirmations = inbound_transfer.confirmations as i32;
-        
+        let confirmations = inbound_transfer.confirmations;
+
         let status = "confirmed";
 
         return Ok(DepositCheckResult {
             amount_received: piconero_to_xmr_string(inbound_transfer.amount),
-            confirmations: Some(confirmations),
+            confirmations: confirmations,
             txid: Some(inbound_transfer.txid.clone()),
             payment_status: status.to_string(),
         });

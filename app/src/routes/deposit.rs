@@ -152,6 +152,7 @@ pub async fn check(
             payment_status,
             confirmations: deposit.confirmations.map(|c| c as u32),
             txid: deposit.txid,
+            is_finalized: deposit.finalized,
         }));
     }
 
@@ -169,19 +170,20 @@ pub async fn check(
 
     let min_height = address_entry.blockchain_height - 1;
 
-    let result: DepositCheckResult = monero_helper::check_for_first_inbound_transfer_confirmed_or_mempool_with_min_height(
-        &state.monero_wallet,
-        address_entry.major_index,
-        address_entry.minor_index,
-        min_height,
-    )
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Error executing get_transfers for this address: {}", e),
+    let result: DepositCheckResult =
+        monero_helper::check_for_first_inbound_transfer_confirmed_or_mempool_with_min_height(
+            &state.monero_wallet,
+            address_entry.major_index,
+            address_entry.minor_index,
+            min_height,
         )
-    })?;
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Error executing get_transfers for this address: {}", e),
+            )
+        })?;
 
     let payment_status = match result.payment_status.as_str() {
         "detected" => DepositStatus::Detected,
@@ -190,7 +192,14 @@ pub async fn check(
     };
 
     let amount_received = result.amount_received.clone();
-    let should_finalize = result.confirmations.map(|c| c >= 20).unwrap_or(false);
+    let should_finalize = result.confirmations.map(|c| c >= 10).unwrap_or(false);
+
+    let is_finalized: bool;
+    if should_finalize == false {
+        is_finalized = false
+    } else {
+        is_finalized = true
+    };
 
     let mut deposit_active_model: deposits::ActiveModel = deposit.into();
     deposit_active_model.amount_received = Set(amount_received.clone());
@@ -199,9 +208,10 @@ pub async fn check(
     deposit_active_model.payment_status = Set(payment_status.to_string());
     deposit_active_model.updated_at = Set(Some(Utc::now().naive_local()));
     deposit_active_model.finalized = Set(should_finalize);
-    deposit_active_model.update(&state.conn).await.map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-    })?;
+    deposit_active_model
+        .update(&state.conn)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(CheckDepositResponse {
         deposit_uuid,
@@ -210,6 +220,7 @@ pub async fn check(
         payment_status,
         confirmations: result.confirmations.map(|c| c as u32),
         txid: result.txid,
+        is_finalized,
     }))
 }
 
@@ -241,7 +252,8 @@ pub enum DepositStatus {
     "amount_received":"0",
     "payment_status":"waiting",
     "confirmations":Option::<u32>::None,
-    "txid":Option::<String>::None,     // None String
+    "txid":Option::<String>::None,
+    "is_finalized":false,
 }))]
 
 pub struct CheckDepositResponse {
@@ -252,6 +264,7 @@ pub struct CheckDepositResponse {
     pub payment_status: DepositStatus,
     pub confirmations: Option<u32>,
     pub txid: Option<String>,
+    pub is_finalized: bool,
 }
 
 #[derive(Serialize, ToSchema)]
