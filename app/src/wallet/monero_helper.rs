@@ -73,9 +73,14 @@ pub async fn get_free_monero_subaddress_with_major_index(
     major_index: u32,
     monero_wallet_client: &MoneroWallet,
     conn: &DatabaseConnection,
-) -> Result<String, MoneroHelperError> {
+) -> Result<(String, i32), MoneroHelperError> {
+    // get height right from rpc in any case
+    let blockchain_height = monero::get_height(monero_wallet_client).await?;
+
+    let height = blockchain_height.height;
+
     // 1. Search for an existing available address in the database
-    if let Some(mut available_address_model) = monero_wallet::Entity::find()
+    if let Some(available_address_model) = monero_wallet::Entity::find()
         .filter(monero_wallet::Column::MajorIndex.eq(major_index as i32))
         .filter(monero_wallet::Column::IsAvailable.eq(true))
         .one(conn)
@@ -85,10 +90,8 @@ pub async fn get_free_monero_subaddress_with_major_index(
         let mut active_model: MoneroWalletActiveModel = available_address_model.clone().into();
         active_model.is_available = Set(false);
         active_model.update(conn).await?; // No need to set last_used_at manually if default is handled by DB
-        Ok(available_address_model.wallet_address)
+        Ok((available_address_model.wallet_address, height))
     } else {
-        let blockchain_height = monero::get_height(monero_wallet_client).await?;
-
         // 3. If no available address, create a new one via Monero RPC
         let create_address_response = monero::create_address(
             monero_wallet_client,
@@ -108,11 +111,11 @@ pub async fn get_free_monero_subaddress_with_major_index(
             minor_index: Set(new_minor_index as i32),
             wallet_address: Set(new_address.clone()),
             is_available: Set(false),
-            blockchain_height: Set(blockchain_height.height),
+            blockchain_height: Set(height),
             ..Default::default() // Let the database handle created_at and last_used_at defaults
         };
         new_monero_wallet_entry.insert(conn).await?;
 
-        Ok(new_address)
+        Ok((new_address, height))
     }
 }

@@ -12,6 +12,7 @@ pub struct Model {
     pub wallet_address: String,
     pub amount_received: String,
     pub payment_status: String,
+    pub min_blockchain_height: Option<i32>,
     pub confirmations: Option<i32>,
     pub txid: Option<String>,
 }

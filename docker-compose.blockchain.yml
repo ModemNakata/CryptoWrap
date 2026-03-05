@@ -24,6 +24,7 @@ services:
       # --tx-notify <arg>
       # --config-file <arg>
       "--shared-ringdb-dir=/monero/wd/.shared-ringdb",
+      "--log-level=2", # 1 is also fine, but without execution time (ms)
     ]
     restart: unless-stopped
     security_opt:

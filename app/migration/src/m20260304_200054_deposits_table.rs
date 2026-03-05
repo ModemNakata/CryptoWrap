@@ -22,6 +22,7 @@ impl MigrationTrait for Migration {
                     .col(string("wallet_address").not_null())
                     .col(string("amount_received").default(Expr::value("0")))
                     .col(string("payment_status").string_len(20).not_null())
+                    .col(integer("min_blockchain_height").null()) // will be suitable for monero, litecoin, etc (address re-use, to scan for new transfers from current height)
                     .col(integer("confirmations").null())
                     .col(string("txid").null()) // transaction hash
                     // theoretically major/minor indexes or uuid of row in (coin) table wallet can be added

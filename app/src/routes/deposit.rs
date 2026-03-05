@@ -77,13 +77,18 @@ pub async fn create(
         )
     })?;
 
-    let wallet_address = free_subaddress;
+    let wallet_address = free_subaddress.0; // new subaddress under this major index
 
     let deposit = deposits::ActiveModel {
         currency: Set(deposit_request.currency.to_string()),
         network: Set(network),
         payment_status: Set(DepositStatus::Waiting.to_string()),
         wallet_address: Set(wallet_address.clone()),
+        min_blockchain_height: Set(Some(free_subaddress.1 - 1)), // why Some? Because it can return Option<>
+        // ^^^  set current blockchain height to start search (transfers) from, but -1, so it can detect very fast payments
+        //graceful l
+        // another layer of protection can be to implement grace period of re-use (for example: 1 hour of wait at least before using is_available address)
+        //
         ..Default::default()
     };
     let deposit = deposit.insert(&state.conn).await.unwrap();
@@ -109,12 +114,18 @@ pub async fn create(
     responses(
         (status = 200, description = "Deposit request information", body = CheckDepositResponse),
         (status = 404, description = "Deposit request not found"),
+        (status = 500, description = "Internal server error", body = String),
     )
 )]
 pub async fn check(
     state: State<AppState>,
     Query(deposit_request): Query<CheckDepositRequest>,
-) -> Result<Json<CheckDepositResponse>, StatusCode> {
+) -> Result<Json<CheckDepositResponse>, (StatusCode, String)> {
+    // get deposit entry from deposits table with given deposit_uuid (from GET arguments)
+    // get actual wallet address from this row
+    // check wallet address on transfers using monero::get_transfers() specfying monero_wallet, address, and min. blockchain height (starting point)
+    //
+
     Ok(Json(CheckDepositResponse {
         deposit_uuid: Uuid::new_v4(),
         wallet_address: "mock wallet address".to_string(),
