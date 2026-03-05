@@ -2,8 +2,20 @@ use crate::entity::monero_wallet::{self, ActiveModel as MoneroWalletActiveModel}
 use crate::entity::tokens::{self, ActiveModel as TokensActiveModel};
 use crate::wallet::monero::{self, MoneroError, MoneroWallet};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result as FmtResult};
-use uuid::Uuid;
+
+fn piconero_to_xmr_string(amount: u64) -> String {
+    let whole = amount / 1_000_000_000_000;
+    let fraction = amount % 1_000_000_000_000;
+    if fraction == 0 {
+        whole.to_string()
+    } else {
+        let fraction_str = format!("{:012}", fraction);
+        let fraction_trimmed = fraction_str.trim_end_matches('0');
+        format!("{}.{}", whole, fraction_trimmed)
+    }
+}
 
 /// Custom error type for Monero helper functions.
 #[derive(Debug)]
@@ -33,6 +45,14 @@ impl From<sea_orm::DbErr> for MoneroHelperError {
     fn from(err: sea_orm::DbErr) -> Self {
         MoneroHelperError::Db(err)
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DepositCheckResult {
+    pub amount_received: String,
+    pub confirmations: Option<i32>,
+    pub txid: Option<String>,
+    pub payment_status: String,
 }
 
 /// Ensures a major wallet index exists for the user.
@@ -73,7 +93,8 @@ pub async fn get_free_monero_subaddress_with_major_index(
     major_index: u32,
     monero_wallet_client: &MoneroWallet,
     conn: &DatabaseConnection,
-) -> Result<(String, i32), MoneroHelperError> {
+    // ) -> Result<(String, i32), MoneroHelperError> {
+) -> Result<String, MoneroHelperError> {
     // get height right from rpc in any case
     let blockchain_height = monero::get_height(monero_wallet_client).await?;
 
@@ -90,7 +111,8 @@ pub async fn get_free_monero_subaddress_with_major_index(
         let mut active_model: MoneroWalletActiveModel = available_address_model.clone().into();
         active_model.is_available = Set(false);
         active_model.update(conn).await?; // No need to set last_used_at manually if default is handled by DB
-        Ok((available_address_model.wallet_address, height))
+        // Ok((available_address_model.wallet_address, height))
+        Ok(available_address_model.wallet_address)
     } else {
         // 3. If no available address, create a new one via Monero RPC
         let create_address_response = monero::create_address(
@@ -116,6 +138,59 @@ pub async fn get_free_monero_subaddress_with_major_index(
         };
         new_monero_wallet_entry.insert(conn).await?;
 
-        Ok((new_address, height))
+        // Ok((new_address, height))
+        Ok(new_address)
     }
+}
+
+pub async fn check_for_first_inbound_transfer_confirmed_or_mempool_with_min_height(
+    monero_wallet_client: &MoneroWallet,
+    account_index: i32,
+    subaddress_index: i32,
+    min_height: i32,
+) -> Result<DepositCheckResult, MoneroHelperError> {
+    let transfers_response = monero::get_transfers(
+        monero_wallet_client,
+        monero::GetTransfersParams {
+            inbound: Some(true),
+            pool: Some(true),
+            filter_by_height: Some(true),
+            min_height: Some(min_height),
+            account_index: Some(account_index as u32),
+            subaddr_indices: Some(vec![subaddress_index as u32]),
+            ..Default::default()
+        },
+    )
+    .await?;
+
+    let pool_transfers = transfers_response.pool.unwrap_or_default();
+    if let Some(pool_transfer) = pool_transfers.iter().find(|_| true) {
+        return Ok(DepositCheckResult {
+            amount_received: piconero_to_xmr_string(pool_transfer.amount),
+            confirmations: None,
+            txid: None,
+            payment_status: "detected".to_string(),
+        });
+    }
+
+    let inbound_transfers = transfers_response.inbound.unwrap_or_default();
+    if let Some(inbound_transfer) = inbound_transfers.iter().find(|_| true) {
+        let confirmations = inbound_transfer.confirmations as i32;
+        
+        let status = "confirmed";
+
+        return Ok(DepositCheckResult {
+            amount_received: piconero_to_xmr_string(inbound_transfer.amount),
+            confirmations: Some(confirmations),
+            txid: Some(inbound_transfer.txid.clone()),
+            payment_status: status.to_string(),
+        });
+    }
+
+    Ok(DepositCheckResult {
+        amount_received: "0".to_string(),
+        confirmations: None,
+        txid: None,
+        payment_status: "waiting".to_string(),
+    })
 }

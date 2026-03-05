@@ -24,7 +24,8 @@ services:
       # --tx-notify <arg>
       # --config-file <arg>
       "--shared-ringdb-dir=/monero/wd/.shared-ringdb",
-      "--log-level=2", # 1 is also fine, but without execution time (ms)
+      "--log-level=1", # 1 is also fine, but without execution time (ms)
+      # ^ 2 shows each block pull (each ~20s ?)
     ]
     restart: unless-stopped
     security_opt:

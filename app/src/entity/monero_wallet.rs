@@ -9,6 +9,7 @@ pub struct Model {
     pub id: i32,
     pub major_index: i32,
     pub minor_index: i32,
+    #[sea_orm(unique)]
     pub wallet_address: String,
     pub created_at: DateTime,
     pub last_used_at: Option<DateTime>,

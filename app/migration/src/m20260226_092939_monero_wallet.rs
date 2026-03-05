@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .col(integer("id").primary_key().auto_increment())
                     .col(integer("major_index").not_null())
                     .col(integer("minor_index").not_null())
-                    .col(string("wallet_address").not_null())
+                    .col(string("wallet_address").not_null().unique_key()) // unique because each address is unique and each row represents individual major and minor index, ideally this table just lists all the addresses from wallet. they are used and re-used
                     .col(
                         date_time("created_at")
                             .default(Expr::current_timestamp())

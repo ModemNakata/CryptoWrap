@@ -1,12 +1,12 @@
 use crate::AppState;
 use crate::PAYMENT_TAG;
-use crate::entity::deposits;
+use crate::entity::{deposits, monero_wallet};
 use crate::routes::auth_helper::extract_user_row;
-use crate::wallet::monero_helper;
+use crate::wallet::monero_helper::{self, DepositCheckResult};
 use axum::{Json, extract::Query, extract::State, http::HeaderMap, http::StatusCode};
+use chrono::Utc;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use strum_macros::Display;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -77,18 +77,19 @@ pub async fn create(
         )
     })?;
 
-    let wallet_address = free_subaddress.0; // new subaddress under this major index
+    // let wallet_address = free_subaddress.0; // new subaddress under this major index
+    let wallet_address = free_subaddress;
 
     let deposit = deposits::ActiveModel {
         currency: Set(deposit_request.currency.to_string()),
         network: Set(network),
         payment_status: Set(DepositStatus::Waiting.to_string()),
         wallet_address: Set(wallet_address.clone()),
-        min_blockchain_height: Set(Some(free_subaddress.1 - 1)), // why Some? Because it can return Option<>
+        // min_blockchain_height: Set(Some(free_subaddress.1 - 1)), // why Some? Because it can return Option<>
         // ^^^  set current blockchain height to start search (transfers) from, but -1, so it can detect very fast payments
         //graceful l
         // another layer of protection can be to implement grace period of re-use (for example: 1 hour of wait at least before using is_available address)
-        //
+        //  --- moved min_blockchain_height to blockchain_height from monero_wallet using another sql query
         ..Default::default()
     };
     let deposit = deposit.insert(&state.conn).await.unwrap();
@@ -124,15 +125,91 @@ pub async fn check(
     // get deposit entry from deposits table with given deposit_uuid (from GET arguments)
     // get actual wallet address from this row
     // check wallet address on transfers using monero::get_transfers() specfying monero_wallet, address, and min. blockchain height (starting point)
+    // blockchain height is stored in the deposit entry row we got earlier ^
     //
 
+    let deposit_uuid = deposit_request.deposit_uuid;
+
+    // 1. Get deposit entry from database
+    let deposit = deposits::Entity::find()
+        .filter(deposits::Column::DepositId.eq(deposit_uuid))
+        .one(&state.conn)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Deposit not found".to_string()))?;
+
+    if deposit.finalized {
+        let payment_status = match deposit.payment_status.as_str() {
+            "detected" => DepositStatus::Detected,
+            "confirmed" => DepositStatus::Confirmed,
+            _ => DepositStatus::Waiting,
+        };
+
+        return Ok(Json(CheckDepositResponse {
+            deposit_uuid,
+            wallet_address: deposit.wallet_address,
+            amount_received: deposit.amount_received,
+            payment_status,
+            confirmations: deposit.confirmations.map(|c| c as u32),
+            txid: deposit.txid,
+        }));
+    }
+
+    let wallet_address = deposit.wallet_address.clone();
+
+    let address_entry = monero_wallet::Entity::find()
+        .filter(monero_wallet::Column::WalletAddress.eq(&wallet_address))
+        .one(&state.conn)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Wallet address not found in database".to_string(),
+        ))?;
+
+    let min_height = address_entry.blockchain_height - 1;
+
+    let result: DepositCheckResult = monero_helper::check_for_first_inbound_transfer_confirmed_or_mempool_with_min_height(
+        &state.monero_wallet,
+        address_entry.major_index,
+        address_entry.minor_index,
+        min_height,
+    )
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Error executing get_transfers for this address: {}", e),
+        )
+    })?;
+
+    let payment_status = match result.payment_status.as_str() {
+        "detected" => DepositStatus::Detected,
+        "confirmed" => DepositStatus::Confirmed,
+        _ => DepositStatus::Waiting,
+    };
+
+    let amount_received = result.amount_received.clone();
+    let should_finalize = result.confirmations.map(|c| c >= 20).unwrap_or(false);
+
+    let mut deposit_active_model: deposits::ActiveModel = deposit.into();
+    deposit_active_model.amount_received = Set(amount_received.clone());
+    deposit_active_model.confirmations = Set(result.confirmations);
+    deposit_active_model.txid = Set(result.txid.clone());
+    deposit_active_model.payment_status = Set(payment_status.to_string());
+    deposit_active_model.updated_at = Set(Some(Utc::now().naive_local()));
+    deposit_active_model.finalized = Set(should_finalize);
+    deposit_active_model.update(&state.conn).await.map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+    })?;
+
     Ok(Json(CheckDepositResponse {
-        deposit_uuid: Uuid::new_v4(),
-        wallet_address: "mock wallet address".to_string(),
-        amount_received: "3.321".to_string(),
-        payment_status: DepositStatus::Waiting,
-        confirmations: None,
-        txid: None,
+        deposit_uuid,
+        wallet_address,
+        amount_received,
+        payment_status,
+        confirmations: result.confirmations.map(|c| c as u32),
+        txid: result.txid,
     }))
 }
 

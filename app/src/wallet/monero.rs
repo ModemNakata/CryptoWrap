@@ -99,7 +99,7 @@ pub struct SubaddrIndex {
     pub minor: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GetTransfersParams {
     #[serde(rename = "in")]
     pub inbound: Option<bool>,
@@ -108,8 +108,8 @@ pub struct GetTransfersParams {
     pub failed: Option<bool>,
     pub pool: Option<bool>,
     pub filter_by_height: Option<bool>,
-    pub min_height: Option<u64>,
-    pub max_height: Option<u64>,
+    pub min_height: Option<i32>,
+    // pub max_height: Option<i32>,
     pub account_index: Option<u32>,
     pub subaddr_indices: Option<Vec<u32>>,
     pub all_accounts: Option<bool>,
