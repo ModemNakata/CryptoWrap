@@ -1,5 +1,6 @@
 mod routes;
 use routes::auth;
+use routes::checkout;
 use routes::dashboard;
 // use routes::payment;
 use routes::deposit;
@@ -116,6 +117,7 @@ async fn main() -> Result<(), Error> {
     let static_files = ServeDir::new("./assets");
 
     let router = dashboard::router()
+        .merge(checkout::router())
         .merge(api_router)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api.clone()))
         .nest_service("/assets", static_files)

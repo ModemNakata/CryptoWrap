@@ -304,3 +304,5 @@ pub struct CreateDepositRequest {
     pub currency: Currency,
     pub network: Option<Network>,
 }
+
+// add redirect url for url to return back to shop

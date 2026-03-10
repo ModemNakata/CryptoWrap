@@ -1,0 +1,376 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #0a0a0f;
+    background-image:
+        linear-gradient(rgba(100, 150, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(100, 150, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(rgba(100, 150, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(100, 150, 255, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
+    background-position: 0 0, 0 0, 0 0, 0 0;
+    color: #e0e0e0;
+    min-height: 100vh;
+}
+
+.checkout-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+}
+
+.checkout-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.logo {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #6a96ff;
+    margin-bottom: 0.5rem;
+}
+
+.header-subtitle {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.checkout-content {
+    width: 100%;
+    max-width: 420px;
+}
+
+.payment-card {
+    background: #0d0d12;
+    border: 1px solid rgba(100, 150, 255, 0.2);
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.qr-section {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.qr-container {
+    display: inline-block;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.qr-container:hover {
+    transform: scale(1.02);
+}
+
+.qr-container img {
+    width: 180px;
+    height: 180px;
+    display: block;
+}
+
+.qr-hint {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.5rem;
+}
+
+.address-section {
+    margin-bottom: 1.5rem;
+}
+
+.address-label {
+    font-size: 0.85rem;
+    color: #888;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.address-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.address-input {
+    flex: 1;
+    background: #1a1a24;
+    border: 1px solid rgba(100, 150, 255, 0.2);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #e0e0e0;
+    font-size: 0.8rem;
+    font-family: ' monospace;
+    word-break: breakCourier New',-all;
+}
+
+.copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #1a1a24;
+    border: 1px solid rgba(100, 150, 255, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #6a96ff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.copy-btn:hover {
+    background: #252532;
+    border-color: rgba(100, 150, 255, 0.5);
+}
+
+.copy-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.status-section {
+    background: #1a1a24;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.waiting {
+    background: #f59e0b;
+}
+
+.status-dot.detected {
+    background: #3b82f6;
+    animation: pulse 1s infinite;
+}
+
+.status-dot.confirmed {
+    background: #10b981;
+    animation: none;
+}
+
+.status-dot.expired {
+    background: #ef4444;
+    animation: none;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.status-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.status-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    padding: 0.25rem 0;
+}
+
+.detail-label {
+    color: #888;
+}
+
+.detail-value {
+    color: #e0e0e0;
+    font-family: 'Courier New', monospace;
+}
+
+.detail-currency {
+    color: #6a96ff;
+    margin-left: 0.25rem;
+}
+
+.check-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: #6a96ff;
+    border: none;
+    border-radius: 10px;
+    padding: 1rem;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.check-btn:hover {
+    background: #5a86ef;
+}
+
+.check-btn:active {
+    transform: scale(0.98);
+}
+
+.check-btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.check-btn.loading .refresh-icon {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.refresh-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.success-section {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.success-message {
+    color: #10b981;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.return-btn {
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #10b981;
+    border: none;
+    border-radius: 10px;
+    padding: 1rem;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.return-btn:hover {
+    background: #0d9668;
+}
+
+.return-btn:active {
+    transform: scale(0.98);
+}
+
+.checkout-footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.checkout-footer .mono {
+    font-family: 'Courier New', monospace;
+    color: #888;
+}
+
+.qr-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.qr-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.qr-modal-content {
+    position: relative;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 16px;
+}
+
+.qr-modal-content img {
+    width: 300px;
+    height: 300px;
+    display: block;
+}
+
+.qr-modal-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #10b981;
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 1001;
+}
+
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}

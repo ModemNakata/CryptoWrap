@@ -246,3 +246,11 @@ pub fn router() -> OpenApiRouter<AppState> {
 // last used at (default now, timestamp, will be updated if address is borrowed of freed, e.g. is_available or blockchain height changed)
 // blockchain_height (u32)
 // is_available (bool, for reuse)
+
+// add new field to this logic
+// :::
+// it should has optional webhook for payment status change notification,
+// this webhook should answer 202 or else it will repeat it multiple times until stops and decides that receiver failed to accept status update
+// so with optional webhook we need to have field about what latest status was notified (?)
+//
+//
