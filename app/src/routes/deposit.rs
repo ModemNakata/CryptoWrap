@@ -83,7 +83,7 @@ pub async fn create(
     let deposit = deposits::ActiveModel {
         currency: Set(deposit_request.currency.to_string()),
         network: Set(network),
-        payment_status: Set(DepositStatus::Waiting.to_string()),
+        payment_status: Set(DepositStatus::Waiting.as_str().to_string()),
         wallet_address: Set(wallet_address.clone()),
         // min_blockchain_height: Set(Some(free_subaddress.1 - 1)), // why Some? Because it can return Option<>
         // ^^^  set current blockchain height to start search (transfers) from, but -1, so it can detect very fast payments
@@ -143,17 +143,23 @@ pub async fn check(
         .ok_or((StatusCode::NOT_FOUND, "Deposit not found".to_string()))?;
 
     if deposit.finalized {
-        let payment_status = match deposit.payment_status.as_str() {
-            "detected" => DepositStatus::Detected,
-            "confirmed" => DepositStatus::Confirmed,
-            _ => DepositStatus::Waiting,
-        };
+        // tracing::debug!(
+        //     "Finalized deposit payment_status: {:?}",
+        //     deposit.payment_status
+        // );
+
+        // let payment_status = match deposit.payment_status.as_str() {
+        //     "detected" => DepositStatus::Detected,
+        //     "confirmed" => DepositStatus::Confirmed,
+        //     "waiting" => DepositStatus::Waiting,
+        //     _ => DepositStatus::Error,
+        // };
 
         return Ok(Json(CheckDepositResponse {
             deposit_uuid,
             wallet_address: deposit.wallet_address,
             amount_received: deposit.amount_received,
-            payment_status,
+            payment_status: DepositStatus::from_str(&deposit.payment_status),
             confirmations: deposit.confirmations.map(|c| c as u32),
             txid: deposit.txid,
             is_finalized: deposit.finalized,
@@ -189,27 +195,34 @@ pub async fn check(
             )
         })?;
 
-    let payment_status = match result.payment_status.as_str() {
-        "detected" => DepositStatus::Detected,
-        "confirmed" => DepositStatus::Confirmed,
-        _ => DepositStatus::Waiting,
-    };
+    // tracing::debug!(
+    //     "Returned deposit payment_status: {:?}",
+    //     result.payment_status
+    // );
+    // let payment_status = match result.payment_status.as_str() {
+    //     "detected" => DepositStatus::Detected,
+    //     "confirmed" => DepositStatus::Confirmed,
+    //     "waiting" => DepositStatus::Waiting,
+    //     _ => DepositStatus::Error,
+    // };
+
+    let payment_status = DepositStatus::from_str(&result.payment_status);
 
     let amount_received = result.amount_received.clone();
     let should_finalize = result.confirmations.map(|c| c >= 10).unwrap_or(false);
 
     let is_finalized: bool;
     if should_finalize == false {
-        is_finalized = false
+        is_finalized = false;
     } else {
-        is_finalized = true
+        is_finalized = true;
     };
 
     let mut deposit_active_model: deposits::ActiveModel = deposit.into();
     deposit_active_model.amount_received = Set(amount_received.clone());
     deposit_active_model.confirmations = Set(result.confirmations);
     deposit_active_model.txid = Set(result.txid.clone());
-    deposit_active_model.payment_status = Set(payment_status.to_string());
+    deposit_active_model.payment_status = Set(result.payment_status);
     deposit_active_model.updated_at = Set(Some(Utc::now().naive_local()));
     deposit_active_model.finalized = Set(should_finalize);
     deposit_active_model
@@ -247,6 +260,28 @@ pub enum DepositStatus {
     Detected,
     Confirmed,
     Expired,
+    Error,
+}
+
+impl DepositStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            DepositStatus::Waiting => "waiting",
+            DepositStatus::Detected => "detected",
+            DepositStatus::Confirmed => "confirmed",
+            DepositStatus::Expired => "expired",
+            _ => "error", // actually can cover all enum elements
+        }
+    }
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "waiting" => DepositStatus::Waiting,
+            "detected" => DepositStatus::Detected,
+            "confirmed" => DepositStatus::Confirmed,
+            "expired" => DepositStatus::Expired,
+            _ => DepositStatus::Error,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]

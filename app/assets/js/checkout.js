@@ -48,6 +48,13 @@ function updateUI(data) {
     statusDot.classList.add(data.payment_status);
     statusText.textContent = formatStatusText(data.payment_status);
 
+    const checkBtn = document.getElementById('check-btn');
+    if (data.payment_status === 'waiting') {
+        checkBtn.style.display = 'flex';
+    } else {
+        checkBtn.style.display = 'none';
+    }
+
     const receivedAmount = parseFloat(data.amount_received);
     if (receivedAmount > 0) {
         showSuccess();
