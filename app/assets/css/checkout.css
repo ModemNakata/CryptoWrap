@@ -62,7 +62,7 @@ body {
 
 .qr-container {
     display: inline-block;
-    padding: 1rem;
+    padding: 0.5rem;
     background: #fff;
     border-radius: 12px;
     cursor: pointer;
@@ -332,7 +332,7 @@ body {
 
 .qr-modal-content {
     position: relative;
-    padding: 1.5rem;
+    padding: 0.5rem;
     background: #fff;
     border-radius: 16px;
 }

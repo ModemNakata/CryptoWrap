@@ -33,7 +33,7 @@ function updateUI(data) {
     document.getElementById('wallet-address').value = data.wallet_address;
     document.getElementById('deposit-id').textContent = data.deposit_uuid;
     
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data.wallet_address)}`;
+    const qrUrl = `/api/v1/qr?size=200x200&data=${encodeURIComponent(data.wallet_address)}`;
     document.getElementById('qr-image').src = qrUrl;
     document.getElementById('qr-modal-image').src = qrUrl.replace('size=200x200', 'size=400x400');
     

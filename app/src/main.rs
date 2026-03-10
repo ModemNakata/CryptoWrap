@@ -4,6 +4,7 @@ use routes::checkout;
 use routes::dashboard;
 // use routes::payment;
 use routes::deposit;
+use routes::qr;
 use sea_orm::{Database, DatabaseConnection};
 use std::io::Error;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -118,6 +119,7 @@ async fn main() -> Result<(), Error> {
 
     let router = dashboard::router()
         .merge(checkout::router())
+        .merge(qr::router())
         .merge(api_router)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api.clone()))
         .nest_service("/assets", static_files)
