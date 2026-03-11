@@ -139,6 +139,7 @@ dependencies = [
  "openssl",
  "qrcode",
  "reqwest",
+ "rust_decimal",
  "sea-orm",
  "serde",
  "serde_json",

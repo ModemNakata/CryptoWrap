@@ -1,11 +1,12 @@
 use crate::AppState;
 use crate::PAYMENT_TAG;
-use crate::entity::{deposits, monero_wallet};
+use crate::entity::{deposits, fiat_prices, monero_wallet};
 use crate::routes::auth_helper::extract_user_row;
 use crate::wallet::monero_helper::{self, DepositCheckResult};
 use axum::{Json, extract::Query, extract::State, http::HeaderMap, http::StatusCode};
 use chrono::Utc;
 use reqwest::Client;
+use rust_decimal::Decimal;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
@@ -115,7 +116,8 @@ pub async fn create(
     path = "/check",
     tag = PAYMENT_TAG,
     params(
-        ("deposit_uuid" = String, Query, description = "UUID of the deposit to check")
+        ("deposit_uuid" = String, Query, description = "UUID of the deposit to check"),
+        ("price_to" = Option<String>, Query, description = "Optional fiat currency for conversion (usd, eur, rub)") // fiat_price / fiat_convert
     ),
     responses(
         (status = 200, description = "Deposit request information", body = CheckDepositResponse),
@@ -148,26 +150,25 @@ pub async fn check(
         .ok_or((StatusCode::NOT_FOUND, "Deposit not found".to_string()))?;
 
     if deposit.finalized {
-        // tracing::debug!(
-        //     "Finalized deposit payment_status: {:?}",
-        //     deposit.payment_status
-        // );
-
-        // let payment_status = match deposit.payment_status.as_str() {
-        //     "detected" => DepositStatus::Detected,
-        //     "confirmed" => DepositStatus::Confirmed,
-        //     "waiting" => DepositStatus::Waiting,
-        //     _ => DepositStatus::Error,
-        // };
+        let fiat_conversion = if let Some(fiat_curr) = deposit_request.price_to {
+            let coin = deposit.currency.to_lowercase();
+            convert_to_fiat(&state.conn, &deposit.amount_received, &coin, fiat_curr).await
+        } else {
+            None
+        };
 
         return Ok(Json(CheckDepositResponse {
             deposit_uuid,
             wallet_address: deposit.wallet_address,
-            amount_received: deposit.amount_received,
+            amount_received: deposit.amount_received.clone(),
             payment_status: DepositStatus::from_str(&deposit.payment_status),
             confirmations: deposit.confirmations.map(|c| c as u32),
             txid: deposit.txid,
             is_finalized: deposit.finalized,
+
+            // seialization will be skipped if none
+            fiat_amount: fiat_conversion.as_ref().map(|f| f.amount.clone()),
+            fiat_currency: fiat_conversion.map(|f| f.currency),
         }));
     }
 
@@ -241,14 +242,23 @@ pub async fn check(
     // check if deposit.payment_status is different from result.payment_status
     // if true - notify shop using notify_url, sending same response as we send on request below
 
+    let fiat_conversion = if let Some(fiat_curr) = deposit_request.price_to {
+        let coin = deposit.currency.to_lowercase();
+        convert_to_fiat(&state.conn, &amount_received, &coin, fiat_curr).await
+    } else {
+        None
+    };
+
     let deposit_checked = CheckDepositResponse {
         deposit_uuid,
         wallet_address,
-        amount_received,
+        amount_received: amount_received.clone(),
         payment_status,
         confirmations: result.confirmations.map(|c| c as u32),
         txid: result.txid,
         is_finalized,
+        fiat_amount: fiat_conversion.as_ref().map(|f| f.amount.clone()),
+        fiat_currency: fiat_conversion.map(|f| f.currency),
     };
 
     if payment_status_before_update != result.payment_status {
@@ -310,6 +320,8 @@ pub fn router() -> OpenApiRouter<AppState> {
 pub struct CheckDepositRequest {
     #[schema(value_type = String)]
     pub deposit_uuid: Uuid,
+    #[serde(default)]
+    pub price_to: Option<FiatCurrency>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Display)]
@@ -363,6 +375,10 @@ pub struct CheckDepositResponse {
     pub confirmations: Option<u32>,
     pub txid: Option<String>,
     pub is_finalized: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fiat_amount: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fiat_currency: Option<FiatCurrency>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -390,6 +406,68 @@ pub enum Currency {
 #[serde(rename_all = "UPPERCASE")]
 pub enum Network {
     Monero,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Copy, Display)]
+#[serde(rename_all = "lowercase")]
+pub enum FiatCurrency {
+    Usd,
+    Eur,
+    Rub,
+}
+
+impl FiatCurrency {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            FiatCurrency::Usd => "usd",
+            FiatCurrency::Eur => "eur",
+            FiatCurrency::Rub => "rub",
+        }
+    }
+}
+
+fn currency_to_coin_id(currency: &str) -> String {
+    match currency.to_uppercase().as_str() {
+        "XMR" => "monero".to_string(),
+        // "BTC" => "bitcoin".to_string(),
+        // "ETH" => "ethereum".to_string(),
+        // "LTC" => "litecoin".to_string(),
+        _ => currency.to_lowercase(), // will silently fail
+    }
+}
+
+pub struct FiatConversion {
+    pub amount: String,
+    pub currency: FiatCurrency,
+}
+
+pub async fn convert_to_fiat(
+    conn: &sea_orm::DatabaseConnection,
+    crypto_amount: &str,
+    coin: &str,
+    fiat_currency: FiatCurrency,
+) -> Option<FiatConversion> {
+    let crypto_amount: Decimal = crypto_amount.parse().ok()?;
+    let coin_id = currency_to_coin_id(coin);
+
+    let price = fiat_prices::Entity::find()
+        .filter(fiat_prices::Column::Coin.eq(&coin_id))
+        .one(conn)
+        .await
+        .ok()??;
+
+    let fiat_price = match fiat_currency {
+        FiatCurrency::Usd => price.usd,
+        FiatCurrency::Eur => price.eur,
+        FiatCurrency::Rub => price.rub,
+    };
+
+    let fiat_amount = crypto_amount * fiat_price;
+
+    Some(FiatConversion {
+        amount: fiat_amount.to_string(),
+        currency: fiat_currency,
+    })
 }
 
 #[derive(Deserialize, ToSchema)]
