@@ -19,6 +19,21 @@ services:
   # add redis container for stateless rate-limiting
 
 
+  
+  main-cv:
+    image: gcr.io/distroless/cc-debian13
+    volumes:
+      - ./app/:/app
+    ports:
+       - "127.0.0.1:8080:8080"
+    working_dir: "/app"
+    command: [
+      "./release-cw"
+    ]
+    restart: unless-stopped
+
+
+
 volumes:
   postgres_data:
 

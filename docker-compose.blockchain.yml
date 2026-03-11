@@ -1,6 +1,6 @@
 services:
   monero-wr:
-    image: gcr.io/distroless/cc-debian12:nonroot
+    image: gcr.io/distroless/cc-debian13:nonroot
     user: "1000:1000" # check host user id with `id`
     volumes:
       - ./crypto/monero:/monero
