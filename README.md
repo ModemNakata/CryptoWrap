@@ -41,10 +41,5 @@ dev notes:
 Invoices:
 Standard Metadata: Usually includes amount_due, expiry_time, and settlement_status.
 
-Deposits:
-Payment with a dynamic amount.
-
-
-
 Virtual Accounts:
 Static addresses.
