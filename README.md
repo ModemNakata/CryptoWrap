@@ -31,15 +31,3 @@ This project is built using a robust and modern technology stack, orchestrated w
 ## License
 
 This project is open-source and licensed under the Affero General Public License (AGPL), promoting freedom and encouraging the sharing of modifications or extended versions, even when used as a web service.
-
-
-
-
-===
-dev notes:
-
-Invoices:
-Standard Metadata: Usually includes amount_due, expiry_time, and settlement_status.
-
-Virtual Accounts:
-Static addresses.
