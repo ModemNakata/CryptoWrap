@@ -10,6 +10,7 @@ pub struct Model {
     pub token_hash: String,
     pub created_at: DateTime,
     pub monero_major_index: Option<i32>,
+    pub litecoin_account_index: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
