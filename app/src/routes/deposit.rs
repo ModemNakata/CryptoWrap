@@ -2,7 +2,7 @@ use crate::AppState;
 use crate::PAYMENT_TAG;
 use crate::entity::{deposits, fiat_prices, monero_wallet};
 use crate::routes::auth_helper::extract_user_row;
-use crate::wallet::litecoin::LitecoinError;
+use crate::wallet::litecoin_helper;
 use crate::wallet::monero_helper::{self, DepositCheckResult};
 use axum::{Json, extract::Query, extract::State, http::HeaderMap, http::StatusCode};
 use chrono::Utc;
@@ -81,20 +81,36 @@ pub async fn create(
 
         free_subaddress
     } else if deposit_request.currency == Currency::LTC {
-        // process litecoin deposit, create wallet address
-        // derive a new Litecoin address from the master public key
-        let derive_result = state
-            .litecoin_wallet
-            .derive_address(0, 0)
-            .await
-            .map_err(|e: LitecoinError| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to derive Litecoin address: {}", e),
-                )
-            })?;
+        // get litecoin wallet address for this payment
+        // first check if user has litecoin wallet initialized (e.g. has account index in tokens db)
+        let account_index = litecoin_helper::ensure_litecoin_account_index_for_user(
+            &user_row,
+            &state.litecoin_wallet,
+            &state.conn,
+        )
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to initialize Litecoin wallet: {}", e),
+            )
+        })?;
 
-        derive_result.address
+        // use this index to create new deposit address (or reuse first available address under this account)
+        let free_deposit_address = litecoin_helper::get_free_litecoin_address_with_account_index(
+            account_index,
+            &state.litecoin_wallet,
+            &state.conn,
+        )
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to get Litecoin address: {}", e),
+            )
+        })?;
+
+        free_deposit_address
     } else {
         return Err((
             StatusCode::BAD_REQUEST,
