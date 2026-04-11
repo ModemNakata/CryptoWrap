@@ -150,3 +150,16 @@ pub struct BalanceEntry {
 }
 
 pub type BalanceResponse = std::collections::HashMap<String, BalanceEntry>;
+
+/// Convert litoshis (smallest unit, 1 LTC = 100_000_000 litoshis) to LTC string.
+pub fn litoshi_to_ltc(amount: u64) -> String {
+    let whole = amount / 100_000_000;
+    let fraction = amount % 100_000_000;
+    if fraction == 0 {
+        whole.to_string()
+    } else {
+        let fraction_str = format!("{:08}", fraction);
+        let fraction_trimmed = fraction_str.trim_end_matches('0');
+        format!("{}.{}", whole, fraction_trimmed)
+    }
+}

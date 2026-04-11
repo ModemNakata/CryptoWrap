@@ -1,7 +1,8 @@
 use crate::AppState;
 use crate::PAYMENT_TAG;
-use crate::entity::{deposits, fiat_prices, monero_wallet};
+use crate::entity::{deposits, fiat_prices, litecoin_wallet, monero_wallet};
 use crate::routes::auth_helper::extract_user_row;
+use crate::wallet::litecoin::litoshi_to_ltc;
 use crate::wallet::litecoin_helper;
 use crate::wallet::monero_helper::{self, DepositCheckResult};
 use axum::{Json, extract::Query, extract::State, http::HeaderMap, http::StatusCode};
@@ -194,13 +195,20 @@ pub async fn check(
             None
         };
 
+        // For Litecoin, skip confirmations and txids in the response
+        let (confirmations, txids) = if deposit.currency == "LTC" {
+            (None, None)
+        } else {
+            (deposit.confirmations.map(|c| c as u32), Some(deposit.txids))
+        };
+
         return Ok(Json(CheckDepositResponse {
             deposit_uuid,
             wallet_address: deposit.wallet_address,
             amount_received: deposit.amount_received.clone(),
             payment_status: DepositStatus::from_str(&deposit.payment_status),
-            confirmations: deposit.confirmations.map(|c| c as u32),
-            txids: deposit.txids,
+            confirmations,
+            txids,
             is_finalized: deposit.finalized,
 
             // seialization will be skipped if none
@@ -211,76 +219,124 @@ pub async fn check(
 
     let wallet_address = deposit.wallet_address.clone();
 
-    let address_entry = monero_wallet::Entity::find()
-        .filter(monero_wallet::Column::WalletAddress.eq(&wallet_address))
-        .one(&state.conn)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .ok_or((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Wallet address not found in database".to_string(),
-        ))?;
-
-    let min_height = address_entry.blockchain_height - 1;
-
-    let result: DepositCheckResult =
-        monero_helper::check_for_inbound_transfers_confirmed_or_mempool_with_min_height(
-            &state.monero_wallet,
-            address_entry.major_index,
-            address_entry.minor_index,
-            min_height,
-        )
-        .await
-        .map_err(|e| {
-            (
+    // Check what coin this deposit is for
+    let (amount_received, payment_status, confirmations, txids, should_finalize) = if deposit.currency == "XMR" {
+        // === MONERO ===
+        let address_entry = monero_wallet::Entity::find()
+            .filter(monero_wallet::Column::WalletAddress.eq(&wallet_address))
+            .one(&state.conn)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+            .ok_or((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Error executing get_transfers for this address: {}", e),
+                "Wallet address not found in database".to_string(),
+            ))?;
+
+        let min_height = address_entry.blockchain_height - 1;
+
+        let result: DepositCheckResult =
+            monero_helper::check_for_inbound_transfers_confirmed_or_mempool_with_min_height(
+                &state.monero_wallet,
+                address_entry.major_index,
+                address_entry.minor_index,
+                min_height,
             )
-        })?;
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Error executing get_transfers for this address: {}", e),
+                )
+            })?;
 
-    // tracing::debug!(
-    //     "Returned deposit payment_status: {:?}",
-    //     result.payment_status
-    // );
-    // let payment_status = match result.payment_status.as_str() {
-    //     "detected" => DepositStatus::Detected,
-    //     "confirmed" => DepositStatus::Confirmed,
-    //     "waiting" => DepositStatus::Waiting,
-    //     _ => DepositStatus::Error,
-    // };
+        let should_finalize = result.confirmations.map(|c| c >= 10).unwrap_or(false);
 
-    let payment_status = DepositStatus::from_str(&result.payment_status);
+        (
+            result.amount_received,
+            result.payment_status,
+            result.confirmations,
+            Some(result.txids),
+            should_finalize,
+        )
+    } else if deposit.currency == "LTC" {
+        // === LITECOIN ===
+        let ltc_entry = litecoin_wallet::Entity::find()
+            .filter(litecoin_wallet::Column::WalletAddress.eq(&wallet_address))
+            .one(&state.conn)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+            .ok_or((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Litecoin wallet address not found in database".to_string(),
+            ))?;
 
-    let amount_received = result.amount_received.clone();
+        let balance_response = state.litecoin_wallet.get_balance(&[wallet_address.clone()]).await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to check Litecoin balance: {}", e),
+                )
+            })?;
 
-    let should_finalize: bool;
+        let balance_entry = balance_response.get(&wallet_address);
 
-    // finalization decision. should or should not finalize, decided by coin type
-    if deposit.currency == "XMR" {
-        should_finalize = result.confirmations.map(|c| c >= 10).unwrap_or(false);
+        let confirmed = balance_entry.map(|e| e.confirmed).unwrap_or(0);
+        let unconfirmed = balance_entry.map(|e| e.unconfirmed).unwrap_or(0);
+
+        let initial_balance: u64 = ltc_entry
+            .initial_balance
+            .as_deref()
+            .unwrap_or("0")
+            .parse()
+            .unwrap_or(0);
+
+        let total_balance = confirmed + unconfirmed;
+
+        let (payment_status, should_finalize) = if total_balance > initial_balance {
+            if unconfirmed > 0 {
+                // Some or all deposits are still unconfirmed (mempool)
+                ("detected".to_string(), false)
+            } else {
+                // All balance is confirmed
+                ("confirmed".to_string(), true)
+            }
+        } else {
+            // No deposit yet
+            ("waiting".to_string(), false)
+        };
+
+        let amount_received_litoshi = if total_balance > initial_balance {
+            total_balance - initial_balance
+        } else {
+            0
+        };
+
+        let amount_received = litoshi_to_ltc(amount_received_litoshi);
+
+        // confirmations is Monero-specific; skip for Litecoin
+        let confirmations: Option<i32> = None;
+
+        (amount_received, payment_status, confirmations, None, should_finalize)
     } else {
-        // default value
-        should_finalize = false
-    }
-    // add handle `else if` for litecoin
-
-    // if should_finalize is true -> is_finalized changes to true (??? profit)
-    let is_finalized: bool;
-    if should_finalize == false {
-        is_finalized = false;
-    } else {
-        is_finalized = true;
+        return Err((
+            StatusCode::BAD_REQUEST,
+            format!("Unsupported currency: {}", deposit.currency),
+        ));
     };
+
+    let payment_status = DepositStatus::from_str(&payment_status);
+
+    // if should_finalize is true -> is_finalized changes to true
+    let is_finalized = should_finalize;
 
     let payment_status_before_update = deposit.payment_status.clone();
     let notify_url = deposit.notify_url.clone();
 
     let mut deposit_active_model: deposits::ActiveModel = deposit.clone().into();
     deposit_active_model.amount_received = Set(amount_received.clone());
-    deposit_active_model.confirmations = Set(result.confirmations);
-    deposit_active_model.txids = Set(result.txids.clone());
-    deposit_active_model.payment_status = Set(result.payment_status.clone());
-    deposit_active_model.updated_at = Set(Some(Utc::now().naive_local()));
+    deposit_active_model.confirmations = Set(confirmations);
+    deposit_active_model.payment_status = Set(payment_status.as_str().to_string());
+    deposit_active_model.updated_at = Set(Some(Utc::now().naive_utc()));
     deposit_active_model.finalized = Set(should_finalize);
     deposit_active_model
         .update(&state.conn)
@@ -301,19 +357,20 @@ pub async fn check(
         deposit_uuid,
         wallet_address,
         amount_received: amount_received.clone(),
-        payment_status,
-        confirmations: result.confirmations.map(|c| c as u32),
-        txids: result.txids,
+        payment_status: payment_status.clone(),
+        confirmations: confirmations.map(|c| c as u32),
+        txids,
         is_finalized,
         fiat_amount: fiat_conversion.as_ref().map(|f| f.amount.clone()),
         fiat_currency: fiat_conversion.map(|f| f.currency),
     };
 
-    if payment_status_before_update != result.payment_status {
+    if payment_status_before_update != payment_status.as_str() {
         // ===== NOTIFICATION
         state.tg_notificator.notify(&format!(
             "DEPOSIT STATUS UPDATED: {}\n{}",
-            result.payment_status, deposit_uuid
+            payment_status.as_str(),
+            deposit_uuid
         ));
         // ===== NOTIFICATION
 
@@ -379,7 +436,7 @@ pub struct CheckDepositRequest {
     pub price_to: Option<FiatCurrency>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Display)]
+#[derive(Serialize, Deserialize, ToSchema, Display, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum DepositStatus {
     Waiting,
@@ -428,8 +485,10 @@ pub struct CheckDepositResponse {
     pub wallet_address: String,
     pub amount_received: String,
     pub payment_status: DepositStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub confirmations: Option<u32>,
-    pub txids: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub txids: Option<Vec<String>>,
     pub is_finalized: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fiat_amount: Option<String>,

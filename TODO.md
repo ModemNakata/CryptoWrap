@@ -7,3 +7,8 @@ on finalization -> wallet address can be reused again (add some graceful cool-do
     (e.g. table monero_wallet, column is_available becomes = true)
 
 but actually address reuse is questionable
+
+
+### ROADMAP:
+
+ - before adding any more coins - let's complete front-end logic, imporove api, swagger docs, dashboard should become usable
