@@ -46,6 +46,8 @@ async fn main() -> Result<(), Error> {
         env::var("BLAKE3_HASH_TOKEN_PEPPER").expect("BLAKE3_HASH_TOKEN_PEPPER must be set");
     let monero_wallet_rpc_address =
         env::var("MONERO_WALLET_RPC_ADDRESS").expect("MONERO_WALLET_RPC_ADDRESS must be set");
+    let ltc_api_url = env::var("LTC_API_URL").expect("LTC_API_URL must be set");
+    let ltc_mpk = env::var("LTC_MPK").expect("LTC_MPK must be set");
     let current_url =
         env::var("CURRENT_URL").expect("CURRENT_URL must be set to construct checkout gateway");
 
@@ -65,6 +67,7 @@ async fn main() -> Result<(), Error> {
         blake3_hash_token_pepper,
         cookie_key: Key::from(&hex::decode(app_key).unwrap()),
         monero_wallet: wallet::monero::MoneroWallet::new(&monero_wallet_rpc_address),
+        litecoin_wallet: wallet::litecoin::LitecoinWallet::new(&ltc_api_url, &ltc_mpk),
         current_url,
         tg_notificator,
     };
@@ -151,6 +154,7 @@ struct AppState {
     blake3_hash_token_pepper: String,
     cookie_key: Key,
     monero_wallet: wallet::monero::MoneroWallet,
+    litecoin_wallet: wallet::litecoin::LitecoinWallet,
     current_url: String,
     tg_notificator: Notifier, // add easy switch to enable/disable notification
 }

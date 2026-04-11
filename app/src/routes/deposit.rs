@@ -2,6 +2,7 @@ use crate::AppState;
 use crate::PAYMENT_TAG;
 use crate::entity::{deposits, fiat_prices, monero_wallet};
 use crate::routes::auth_helper::extract_user_row;
+use crate::wallet::litecoin::LitecoinError;
 use crate::wallet::monero_helper::{self, DepositCheckResult};
 use axum::{Json, extract::Query, extract::State, http::HeaderMap, http::StatusCode};
 use chrono::Utc;
@@ -43,49 +44,63 @@ pub async fn create(
     } else {
         match deposit_request.currency {
             Currency::XMR => Network::Monero.to_string(),
+            Currency::LTC => Network::Litecoin.to_string(),
         }
     };
 
-    // before using next code, first check for what coin is selected/specified, because next code handles only monero xmr
-    // we have only one option in createdepositrequest so it's fine for now
-
     // check what coin is selected
-    // if deposit_request.currency == "XMR" {
-    // get monero wallet address for this payment
-    // first check if user has monero wallet initialized (e.g. has major wallet index in users db)
-    let major_wallet_index = monero_helper::ensure_monero_major_wallet_index_for_user(
-        &user_row,
-        &state.monero_wallet,
-        &state.conn,
-    )
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            // Json(json!({"message": format!("Failed to initialize Monero wallet: {}", e)})),
-            format!("Failed to initialize Monero wallet: {}", e),
+    let wallet_address = if deposit_request.currency == Currency::XMR {
+        // get monero wallet address for this payment
+        // first check if user has monero wallet initialized (e.g. has major wallet index in users db)
+        let major_wallet_index = monero_helper::ensure_monero_major_wallet_index_for_user(
+            &user_row,
+            &state.monero_wallet,
+            &state.conn,
         )
-    })?;
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to initialize Monero wallet: {}", e),
+            )
+        })?;
 
-    // use this index to create new subaddress (or reuse first available subaddress under this account (major index))
-    let free_subaddress = monero_helper::get_free_monero_subaddress_with_major_index(
-        major_wallet_index,
-        &state.monero_wallet,
-        &state.conn,
-    )
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            // Json(json!({"message": format!("Failed to get Monero subaddress: {}", e)})),
-            format!("Failed to get Monero subaddress: {}", e),
+        // use this index to create new subaddress (or reuse first available subaddress under this account (major index))
+        let free_subaddress = monero_helper::get_free_monero_subaddress_with_major_index(
+            major_wallet_index,
+            &state.monero_wallet,
+            &state.conn,
         )
-    })?;
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to get Monero subaddress: {}", e),
+            )
+        })?;
 
-    // let wallet_address = free_subaddress.0; // new subaddress under this major index
-    let wallet_address = free_subaddress;
-    //}// else if deposit_request.currency == "LTC" { // process litecoin deposit, create wallet address
-    //}
+        free_subaddress
+    } else if deposit_request.currency == Currency::LTC {
+        // process litecoin deposit, create wallet address
+        // derive a new Litecoin address from the master public key
+        let derive_result = state
+            .litecoin_wallet
+            .derive_address(0, 0)
+            .await
+            .map_err(|e: LitecoinError| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to derive Litecoin address: {}", e),
+                )
+            })?;
+
+        derive_result.address
+    } else {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            format!("Unsupported currency: {:?}", deposit_request.currency),
+        ));
+    };
 
     let deposit = deposits::ActiveModel {
         currency: Set(deposit_request.currency.to_string()),
@@ -421,16 +436,18 @@ pub struct CreateDepositResponse {
                                // can be used to send to user for the payment
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Display)]
+#[derive(Serialize, Deserialize, ToSchema, Display, Debug, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Currency {
     XMR,
+    LTC,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Display)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Network {
     Monero,
+    Litecoin,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Copy, Display)]
@@ -454,9 +471,7 @@ impl FiatCurrency {
 fn currency_to_coin_id(currency: &str) -> String {
     match currency.to_uppercase().as_str() {
         "XMR" => "monero".to_string(),
-        // "BTC" => "bitcoin".to_string(),
-        // "ETH" => "ethereum".to_string(),
-        // "LTC" => "litecoin".to_string(),
+        "LTC" => "litecoin".to_string(),
         _ => currency.to_lowercase(), // will silently fail
     }
 }
