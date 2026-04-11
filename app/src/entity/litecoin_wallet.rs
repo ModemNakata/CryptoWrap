@@ -16,6 +16,7 @@ pub struct Model {
     pub blockchain_height: i32,
     pub is_available: Option<bool>,
     pub is_change: bool,
+    pub initial_balance: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

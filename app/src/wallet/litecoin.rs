@@ -64,6 +64,57 @@ impl LitecoinWallet {
         let result: DeriveAddressResponse = response.json().await?;
         Ok(result)
     }
+
+    /// Get the current blockchain height.
+    pub async fn get_block_height(&self) -> Result<BlockHeightResponse, LitecoinError> {
+        let url = format!("{}/block-height", self.api_url);
+
+        let response = self.client.get(&url).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(LitecoinError::Api(format!(
+                "API request failed with status {}: {}",
+                status, body
+            )));
+        }
+
+        let result: BlockHeightResponse = response.json().await?;
+        Ok(result)
+    }
+
+    /// Get balance for a list of addresses.
+    pub async fn get_balance(
+        &self,
+        addresses: &[String],
+    ) -> Result<BalanceResponse, LitecoinError> {
+        let request = BalanceRequest {
+            addresses: addresses.to_vec(),
+        };
+
+        let url = format!("{}/balance", self.api_url);
+
+        let response = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(&request)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            return Err(LitecoinError::Api(format!(
+                "API request failed with status {}: {}",
+                status, body
+            )));
+        }
+
+        let result: BalanceResponse = response.json().await?;
+        Ok(result)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,3 +130,23 @@ pub struct DeriveRequest {
 pub struct DeriveAddressResponse {
     pub address: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlockHeightResponse {
+    pub height: u32,
+    pub last_updated: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BalanceRequest {
+    pub addresses: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BalanceEntry {
+    pub confirmed: u64,
+    pub unconfirmed: u64,
+    pub timestamp: String,
+}
+
+pub type BalanceResponse = std::collections::HashMap<String, BalanceEntry>;

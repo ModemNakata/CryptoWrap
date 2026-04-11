@@ -65,7 +65,7 @@ pub async fn ensure_litecoin_account_index_for_user(
             .derive_address(new_account_index, 0)
             .await?;
 
-        let blockchain_height = 0; // TODO: get from RPC if available
+        let blockchain_height = litecoin_wallet_client.get_block_height().await?.height as i32;
 
         let new_litecoin_wallet_entry = LitecoinWalletActiveModel {
             account_index: Set(new_account_index as i32),
@@ -95,8 +95,8 @@ pub async fn get_free_litecoin_address_with_account_index(
     litecoin_wallet_client: &LitecoinWallet,
     conn: &DatabaseConnection,
 ) -> Result<String, LitecoinHelperError> {
-    // Get blockchain height if needed (for now, we'll set it to 0 or fetch from RPC)
-    let blockchain_height = 0; // TODO: get from RPC if available
+    // Get blockchain height
+    let blockchain_height = litecoin_wallet_client.get_block_height().await?.height as i32;
 
     // 1. Search for an existing available address in the database
     if let Some(available_address_model) = litecoin_wallet::Entity::find()
@@ -106,14 +106,26 @@ pub async fn get_free_litecoin_address_with_account_index(
         .one(conn)
         .await?
     {
-        // 2. If found, update its status to not available and return the address
+        // 2. If found, check current balance and update initial_balance
+        let address = &available_address_model.wallet_address;
+        let balance_response = litecoin_wallet_client.get_balance(&[address.clone()]).await?;
+
+        let confirmed_balance = balance_response
+            .get(address)
+            .map(|e| e.confirmed.to_string())
+            .unwrap_or("0".to_string());
+
         let mut active_model: LitecoinWalletActiveModel = available_address_model.clone().into();
         active_model.is_available = Set(Some(false));
         active_model.blockchain_height = Set(blockchain_height);
+        active_model.initial_balance = Set(Some(confirmed_balance));
+        // NOTE: unconfirmed balance is not checked here — the finalizer is responsible
+        // for ensuring an address has no unconfirmed balance before setting is_available = true
         active_model.update(conn).await?;
-        Ok(available_address_model.wallet_address)
+
+        Ok(address.clone())
     } else {
-        // 3. If no available address, find the next available address index
+        // 3. No available address — derive the next one
         let max_address_index = litecoin_wallet::Entity::find()
             .filter(litecoin_wallet::Column::AccountIndex.eq(account_index as i32))
             .filter(litecoin_wallet::Column::IsChange.eq(false))
@@ -127,14 +139,24 @@ pub async fn get_free_litecoin_address_with_account_index(
 
         let new_address_index = (max_address_index + 1) as u32;
 
-        // 4. Derive the new address via the Litecoin API
+        // Derive the new address
         let derive_response = litecoin_wallet_client
             .derive_address(account_index, new_address_index)
             .await?;
 
         let new_address = derive_response.address;
 
-        // 5. Insert the new address into the database with is_available = false
+        // Check balance of the newly derived address
+        let balance_response = litecoin_wallet_client
+            .get_balance(&[new_address.clone()])
+            .await?;
+
+        let confirmed_balance = balance_response
+            .get(&new_address)
+            .map(|e| e.confirmed.to_string())
+            .unwrap_or("0".to_string());
+
+        // Insert into the database with is_available = false
         let new_litecoin_wallet_entry = LitecoinWalletActiveModel {
             account_index: Set(account_index as i32),
             address_index: Set(new_address_index as i32),
@@ -142,6 +164,7 @@ pub async fn get_free_litecoin_address_with_account_index(
             is_available: Set(Some(false)),
             is_change: Set(false),
             blockchain_height: Set(blockchain_height),
+            initial_balance: Set(Some(confirmed_balance)),
             ..Default::default()
         };
         new_litecoin_wallet_entry.insert(conn).await?;
