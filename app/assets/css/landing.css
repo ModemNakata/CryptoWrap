@@ -10,7 +10,8 @@
     --primary: #6a96ff;
     --secondary: #6a3ad9;
     --text-main: #e0e0e0;
-    --text-muted: #888;
+    /* --text-muted: #888; */
+    --text-muted: white;
     --border-color: rgba(100, 150, 255, 0.2);
 }
 
@@ -63,11 +64,9 @@ header {
     border-radius: 8px;
     font-weight: 600;
     font-size: 0.9rem;
-    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .nav-btn:hover {
-    transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(58, 95, 200, 0.4);
 }
 
@@ -126,7 +125,6 @@ main {
     border: 1px solid var(--border-color);
     padding: 2rem 1.5rem;
     border-radius: 16px;
-    transition: border-color 0.2s, transform 0.2s;
     flex: 1 1 160px;
     min-width: 150px;
     max-width: 180px;
@@ -134,7 +132,6 @@ main {
 
 .coin-item:hover {
     border-color: var(--secondary);
-    transform: translateY(-4px);
 }
 
 .coin-item img {
@@ -151,18 +148,17 @@ main {
 }
 
 .features {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
     margin-bottom: 6rem;
 }
 
 .feature-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    padding: 2rem;
+    padding: 1.5rem 2rem;
     border-radius: 16px;
-    transition: border-color 0.3s;
 }
 
 .feature-card:hover {
@@ -171,12 +167,51 @@ main {
 
 .feature-card h3 {
     color: var(--primary);
-    margin-bottom: 1rem;
-    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
+}
+
+.feature-card h3 .btn-inline {
+    margin-left: 1rem;
 }
 
 .feature-card p {
     color: var(--text-muted);
+    line-height: 1.7;
+}
+
+.feature-card a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.feature-card a:hover {
+    text-decoration: underline;
+}
+
+.btn-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    background: linear-gradient(135deg, #3a5fc8 0%, #6a3ad9 100%);
+    color: #fff !important;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    vertical-align: middle;
+    transition: box-shadow 0.2s;
+    margin-bottom: 3px;
+}
+
+.btn-inline:hover {
+    box-shadow: 0 2px 8px rgba(58, 95, 200, 0.4);
+    text-decoration: none !important;
+}
+
+.btn-inline img {
+    width: 14px;
+    height: 14px;
 }
 
 .tech-stack {
