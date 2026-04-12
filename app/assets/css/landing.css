@@ -109,8 +109,9 @@ main {
 }
 
 .coin-list {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 1.5rem;
     max-width: 640px;
     margin: 0 auto;
@@ -126,6 +127,9 @@ main {
     padding: 2rem 1.5rem;
     border-radius: 16px;
     transition: border-color 0.2s, transform 0.2s;
+    flex: 1 1 160px;
+    min-width: 150px;
+    max-width: 180px;
 }
 
 .coin-item:hover {
@@ -218,10 +222,5 @@ footer {
     
     header {
         padding: 1rem;
-    }
-
-    .coin-list {
-        grid-template-columns: repeat(2, 1fr);
-        max-width: 340px;
     }
 }
