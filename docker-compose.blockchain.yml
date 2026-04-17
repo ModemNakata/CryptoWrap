@@ -27,6 +27,7 @@ services:
       "--log-level=1", # 1 is also fine, but without execution time (ms)
       # ^ 2 shows each block pull (each ~20s ?)
     ]
-    restart: unless-stopped
+    # restart: unless-stopped
+    restart: no
     security_opt:
       - no-new-privileges:true

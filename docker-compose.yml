@@ -11,7 +11,8 @@ services:
       - "127.0.0.1:5432:5432" # localhost only
     volumes:
       - postgres_data:/var/lib/postgresql
-    restart: unless-stopped #always/never
+    # restart: unless-stopped #always/no
+    restart: no
     # networks: # it actually isolates container from outside network (e.g. ports : local forward won't work)
       # - db_network  # Both services share this network
 
