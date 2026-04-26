@@ -187,10 +187,7 @@ pub async fn check_for_inbound_transfers_confirmed_or_mempool_with_min_height(
     let total_amount = pool_total + inbound_total;
 
     // Collect all txids (only from confirmed inbound transfers, pool txs have no txids yet)
-    let txids: Vec<String> = inbound_transfers
-        .iter()
-        .map(|t| t.txid.clone())
-        .collect();
+    let txids: Vec<String> = inbound_transfers.iter().map(|t| t.txid.clone()).collect();
 
     // Determine status based on transfer states
     if has_pool {

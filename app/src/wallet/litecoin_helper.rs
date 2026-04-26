@@ -108,7 +108,9 @@ pub async fn get_free_litecoin_address_with_account_index(
     {
         // 2. If found, check current balance and update initial_balance
         let address = &available_address_model.wallet_address;
-        let balance_response = litecoin_wallet_client.get_balance(&[address.clone()]).await?;
+        let balance_response = litecoin_wallet_client
+            .get_balance(&[address.clone()])
+            .await?;
 
         let confirmed_balance = balance_response
             .get(address)

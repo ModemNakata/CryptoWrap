@@ -220,109 +220,119 @@ pub async fn check(
     let wallet_address = deposit.wallet_address.clone();
 
     // Check what coin this deposit is for
-    let (amount_received, payment_status, confirmations, txids, should_finalize) = if deposit.currency == "XMR" {
-        // === MONERO ===
-        let address_entry = monero_wallet::Entity::find()
-            .filter(monero_wallet::Column::WalletAddress.eq(&wallet_address))
-            .one(&state.conn)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-            .ok_or((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Wallet address not found in database".to_string(),
-            ))?;
+    let (amount_received, payment_status, confirmations, txids, should_finalize) =
+        if deposit.currency == "XMR" {
+            // === MONERO ===
+            let address_entry = monero_wallet::Entity::find()
+                .filter(monero_wallet::Column::WalletAddress.eq(&wallet_address))
+                .one(&state.conn)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+                .ok_or((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Wallet address not found in database".to_string(),
+                ))?;
 
-        let min_height = address_entry.blockchain_height - 1;
+            let min_height = address_entry.blockchain_height - 1;
 
-        let result: DepositCheckResult =
-            monero_helper::check_for_inbound_transfers_confirmed_or_mempool_with_min_height(
-                &state.monero_wallet,
-                address_entry.major_index,
-                address_entry.minor_index,
-                min_height,
+            let result: DepositCheckResult =
+                monero_helper::check_for_inbound_transfers_confirmed_or_mempool_with_min_height(
+                    &state.monero_wallet,
+                    address_entry.major_index,
+                    address_entry.minor_index,
+                    min_height,
+                )
+                .await
+                .map_err(|e| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Error executing get_transfers for this address: {}", e),
+                    )
+                })?;
+
+            let should_finalize = result.confirmations.map(|c| c >= 10).unwrap_or(false);
+
+            (
+                result.amount_received,
+                result.payment_status,
+                result.confirmations,
+                Some(result.txids),
+                should_finalize,
             )
-            .await
-            .map_err(|e| {
-                (
+        } else if deposit.currency == "LTC" {
+            // === LITECOIN ===
+            let ltc_entry = litecoin_wallet::Entity::find()
+                .filter(litecoin_wallet::Column::WalletAddress.eq(&wallet_address))
+                .one(&state.conn)
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+                .ok_or((
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Error executing get_transfers for this address: {}", e),
-                )
-            })?;
+                    "Litecoin wallet address not found in database".to_string(),
+                ))?;
 
-        let should_finalize = result.confirmations.map(|c| c >= 10).unwrap_or(false);
+            let balance_response = state
+                .litecoin_wallet
+                .get_balance(&[wallet_address.clone()])
+                .await
+                .map_err(|e| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Failed to check Litecoin balance: {}", e),
+                    )
+                })?;
 
-        (
-            result.amount_received,
-            result.payment_status,
-            result.confirmations,
-            Some(result.txids),
-            should_finalize,
-        )
-    } else if deposit.currency == "LTC" {
-        // === LITECOIN ===
-        let ltc_entry = litecoin_wallet::Entity::find()
-            .filter(litecoin_wallet::Column::WalletAddress.eq(&wallet_address))
-            .one(&state.conn)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-            .ok_or((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Litecoin wallet address not found in database".to_string(),
-            ))?;
+            let balance_entry = balance_response.get(&wallet_address);
 
-        let balance_response = state.litecoin_wallet.get_balance(&[wallet_address.clone()]).await
-            .map_err(|e| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to check Litecoin balance: {}", e),
-                )
-            })?;
+            let confirmed = balance_entry.map(|e| e.confirmed).unwrap_or(0);
+            let unconfirmed = balance_entry.map(|e| e.unconfirmed).unwrap_or(0);
 
-        let balance_entry = balance_response.get(&wallet_address);
+            let initial_balance: u64 = ltc_entry
+                .initial_balance
+                .as_deref()
+                .unwrap_or("0")
+                .parse()
+                .unwrap_or(0);
 
-        let confirmed = balance_entry.map(|e| e.confirmed).unwrap_or(0);
-        let unconfirmed = balance_entry.map(|e| e.unconfirmed).unwrap_or(0);
+            let total_balance = confirmed + unconfirmed;
 
-        let initial_balance: u64 = ltc_entry
-            .initial_balance
-            .as_deref()
-            .unwrap_or("0")
-            .parse()
-            .unwrap_or(0);
-
-        let total_balance = confirmed + unconfirmed;
-
-        let (payment_status, should_finalize) = if total_balance > initial_balance {
-            if unconfirmed > 0 {
-                // Some or all deposits are still unconfirmed (mempool)
-                ("detected".to_string(), false)
+            let (payment_status, should_finalize) = if total_balance > initial_balance {
+                if unconfirmed > 0 {
+                    // Some or all deposits are still unconfirmed (mempool)
+                    ("detected".to_string(), false)
+                } else {
+                    // All balance is confirmed
+                    ("confirmed".to_string(), true)
+                }
             } else {
-                // All balance is confirmed
-                ("confirmed".to_string(), true)
-            }
+                // No deposit yet
+                ("waiting".to_string(), false)
+            };
+
+            let amount_received_litoshi = if total_balance > initial_balance {
+                total_balance - initial_balance
+            } else {
+                0
+            };
+
+            let amount_received = litoshi_to_ltc(amount_received_litoshi);
+
+            // confirmations is Monero-specific; skip for Litecoin
+            let confirmations: Option<i32> = None;
+
+            (
+                amount_received,
+                payment_status,
+                confirmations,
+                None,
+                should_finalize,
+            )
         } else {
-            // No deposit yet
-            ("waiting".to_string(), false)
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("Unsupported currency: {}", deposit.currency),
+            ));
         };
-
-        let amount_received_litoshi = if total_balance > initial_balance {
-            total_balance - initial_balance
-        } else {
-            0
-        };
-
-        let amount_received = litoshi_to_ltc(amount_received_litoshi);
-
-        // confirmations is Monero-specific; skip for Litecoin
-        let confirmations: Option<i32> = None;
-
-        (amount_received, payment_status, confirmations, None, should_finalize)
-    } else {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            format!("Unsupported currency: {}", deposit.currency),
-        ));
-    };
 
     let payment_status = DepositStatus::from_str(&payment_status);
 
