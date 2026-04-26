@@ -138,9 +138,9 @@ pub async fn create(
     let checkout_page = format!("{0}/checkout?uuid={deposit_uuid}", &state.current_url);
 
     // ===== NOTIFICATION
-    state
-        .tg_notificator
-        .notify(&format!("NEW DEPOSIT REQUEST CREATED:\n{}", deposit_uuid));
+    // state
+    // .tg_notificator
+    // .notify(&format!("NEW DEPOSIT REQUEST CREATED:\n{}", deposit_uuid));
     // ===== NOTIFICATION
 
     Ok(Json(CreateDepositResponse {
@@ -377,11 +377,11 @@ pub async fn check(
 
     if payment_status_before_update != payment_status.as_str() {
         // ===== NOTIFICATION
-        state.tg_notificator.notify(&format!(
-            "DEPOSIT STATUS UPDATED: {}\n{}",
-            payment_status.as_str(),
-            deposit_uuid
-        ));
+        // state.tg_notificator.notify(&format!(
+        //     "DEPOSIT STATUS UPDATED: {}\n{}",
+        //     payment_status.as_str(),
+        //     deposit_uuid
+        // ));
         // ===== NOTIFICATION
 
         if let Some(url) = notify_url {
