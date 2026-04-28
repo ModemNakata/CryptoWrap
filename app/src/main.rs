@@ -8,8 +8,9 @@ use routes::qr;
 use sea_orm::{Database, DatabaseConnection};
 use std::io::Error;
 use std::net::{Ipv4Addr, SocketAddr};
+use std::sync::OnceLock;
 use tokio::net::TcpListener;
-use tower_cookies::{CookieManagerLayer, Key};
+use tower_cookies::{Cookie, CookieManagerLayer, Cookies, Key};
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 // use utoipa::{
@@ -34,6 +35,9 @@ use std::env;
 
 const AUTH_TAG: &str = "Authentication";
 const PAYMENT_TAG: &'static str = "Payments";
+
+const COOKIE_NAME: &str = "auth_cookie";
+static KEY: OnceLock<Key> = OnceLock::new();
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -60,6 +64,9 @@ async fn main() -> Result<(), Error> {
     let tg_chat_id = env::var("TG_CHAT_ID").expect("TG_CHAT_ID must be set");
 
     let tg_notificator = Notifier::new(tg_bot_token, tg_chat_id);
+
+    let cookie_key: &[u8] = &[0; 64]; // replace with real CSRNG key
+    KEY.set(Key::from(cookie_key)).ok();
 
     let state = AppState {
         conn,
@@ -132,6 +139,7 @@ async fn main() -> Result<(), Error> {
     let static_files = ServeDir::new("./assets");
 
     let router = dashboard::router()
+        .layer(CookieManagerLayer::new()) // apply cookie only for dashbourd router (endpoints: /dashboard and /auth)
         .merge(checkout::router())
         .merge(qr::router())
         .merge(api_router)
