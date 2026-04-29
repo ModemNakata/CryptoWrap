@@ -2,12 +2,13 @@ use crate::AUTH_TAG;
 use crate::AppState;
 use crate::entity::tokens;
 use axum::{Json, extract::State, http::StatusCode, routing::post};
-use axum_extra::extract::PrivateCookieJar;
+use axum_extra::extract::{PrivateCookieJar, cookie::Cookie};
 use base64::Engine;
 use openssl::rand::rand_bytes;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 // use tower_cookies::{Cookie, Cookies};
+use time::Duration;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -64,18 +65,19 @@ pub async fn generate_token(state: State<AppState>) -> Json<TokenResponse> {
 // )]
 async fn login_or_register(
     state: State<AppState>,
+    jar: PrivateCookieJar,
     Json(auth_request): Json<AuthRequest>,
-) -> StatusCode {
+) -> (PrivateCookieJar, StatusCode) {
     if auth_request.token.is_empty() {
-        return StatusCode::BAD_REQUEST;
+        return (jar, StatusCode::BAD_REQUEST);
     }
 
     if auth_request.token.len() < 100 {
-        return StatusCode::BAD_REQUEST;
+        return (jar, StatusCode::BAD_REQUEST);
     }
 
     if auth_request.token.len() > 200 {
-        return StatusCode::BAD_REQUEST;
+        return (jar, StatusCode::BAD_REQUEST);
     }
 
     // Strip the token prefix before hashing
@@ -109,7 +111,15 @@ async fn login_or_register(
         }
     };
 
-    StatusCode::OK
+    let mut cookie = Cookie::new("auth", token_model.id.to_string());
+    cookie.set_path("/");
+    cookie.set_secure(true); // for development use self-signed cert
+    cookie.set_http_only(true);
+    cookie.set_max_age(Duration::days(365));
+    // cookie.set_domain("c-w.cv"); // assign to current domain
+
+    let updated_jar = jar.add(cookie);
+    (updated_jar, StatusCode::OK)
 }
 
 pub fn router() -> OpenApiRouter<AppState> {

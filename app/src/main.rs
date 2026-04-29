@@ -162,6 +162,7 @@ struct AppState {
 //     cookie_key: Key,
 // }
 
+// this impl tells `PrivateCookieJar` how to access the key from our state
 impl FromRef<AppState> for Key {
     fn from_ref(state: &AppState) -> Self {
         state.cookie_key.clone()
