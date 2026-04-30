@@ -134,101 +134,156 @@ body {
     color: #4ade80;
 }
 
-/* Balances Section */
-.balance-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-}
-
-.balance-card {
-    padding: 1.5rem;
-    border-radius: 10px;
-    border: 2px solid;
-    background: linear-gradient(135deg, rgba(106, 150, 255, 0.08) 0%, rgba(106, 150, 255, 0.02) 100%);
-}
-
-.balance-card.monero {
-    border-color: #ff8c42;
-}
-
-.balance-card.litecoin {
-    border-color: #a5a5ff;
-}
-
-.balance-card.total {
-    border-color: #6a96ff;
-}
-
-.coin-header {
+/* Assets Section */
+.assets-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
-.coin-name {
-    font-size: 0.9rem;
-    color: #888;
-    text-transform: uppercase;
+.assets-header h2 {
+    margin: 0;
 }
 
-.coin-symbol {
-    font-size: 1.1rem;
-    font-weight: 600;
+.btn-refresh-balances {
+    background: transparent;
+    border: 2px solid rgba(106, 150, 255, 0.4);
     color: #6a96ff;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    padding: 0;
 }
 
-.balance-amount {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #e0e0e0;
-    margin-bottom: 0.5rem;
+.btn-refresh-balances:hover {
+    background: rgba(106, 150, 255, 0.1);
+    border-color: #6a96ff;
 }
 
-.balance-usd,
-.balance-change {
-    font-size: 0.95rem;
-    color: #aaa;
+.btn-refresh-balances:active {
+    transform: scale(0.95);
 }
 
-.balance-change {
-    color: #4ade80;
+.btn-refresh-balances.loading svg {
+    animation: spin 1s linear infinite;
 }
 
-/* Statistics Section */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.assets-list {
+    display: flex;
+    flex-direction: column;
     gap: 1rem;
 }
 
-.stat-card {
-    background: rgba(106, 150, 255, 0.05);
-    padding: 1.25rem;
+.asset-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(106, 150, 255, 0.2);
     border-radius: 8px;
-    border: 1px solid rgba(106, 150, 255, 0.15);
+    background: rgba(106, 150, 255, 0.04);
+    transition: all 0.3s ease;
 }
 
-.stat-label {
-    font-size: 0.8rem;
-    color: #888;
-    margin-bottom: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.asset-item:hover {
+    background: rgba(106, 150, 255, 0.08);
+    border-color: rgba(106, 150, 255, 0.4);
 }
 
-.stat-value {
-    font-size: 1.6rem;
-    font-weight: 700;
+.asset-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.asset-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(106, 150, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.asset-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.asset-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.asset-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.asset-amount {
+    font-size: 0.9rem;
     color: #6a96ff;
-    margin-bottom: 0.5rem;
+    font-weight: 500;
 }
 
-.stat-meta {
-    font-size: 0.8rem;
-    color: #666;
+.asset-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #888;
+    font-size: 0.9rem;
 }
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(106, 150, 255, 0.3);
+    border-top-color: #6a96ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.btn-withdraw {
+    padding: 0.6rem 1.2rem;
+    background: transparent;
+    color: #6a96ff;
+    border: 2px solid #6a96ff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-withdraw:hover {
+    background: #6a96ff;
+    color: white;
+}
+
+.btn-withdraw:active {
+    transform: scale(0.98);
+}
+
+
 
 /* Actions Section */
 .actions-grid {
@@ -385,6 +440,16 @@ body {
 
     .balance-grid {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .asset-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .btn-withdraw {
+        width: 100%;
     }
 
     .section h2 {

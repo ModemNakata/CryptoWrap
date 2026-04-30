@@ -31,6 +31,8 @@ and apperently we can make address re-use after outgoing payment.
 though adding a new column to litecoin addresses will be more `isolated` and `safer` way.
 but when does it have to toggle on and off? -> update deposits.rs to toggle on keep_track if balance is `detected` or `confirmed`, after transaction is consolidated -> keep_track - to - false ::: change address is always tracked
 
+>>> show `static` address in dashboard (e.g. change addr)
+
 
 - add `recent transaction` on dashboard at the bottom
 - allow user to change fiat currency to calculate profits in dashboard (rub,eur,usd - supported fiat conversion currencies in database)
