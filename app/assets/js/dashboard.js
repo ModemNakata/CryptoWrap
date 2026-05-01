@@ -55,6 +55,13 @@ function createAssetItem(coin) {
         <div class="asset-info">
             <div class="asset-icon">
                 <img src="${coin.icon}" alt="${coin.name}" />
+                <div class="refresh-individual" id="refresh-individual-${coin.id}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6"></path>
+                        <path d="M1 20v-6h6"></path>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36"></path>
+                    </svg>
+                </div>
             </div>
             <div class="asset-details">
                 <div class="asset-name">${coin.name}</div>
@@ -78,6 +85,9 @@ function createAssetItem(coin) {
 
     const withdrawBtn = item.querySelector('.btn-withdraw');
     withdrawBtn.addEventListener('click', () => openWithdrawModal(coin));
+
+    const refreshBtn = item.querySelector('.refresh-individual');
+    refreshBtn.addEventListener('click', () => refreshIndividualBalance(coin));
 
     return item;
 }
@@ -162,6 +172,27 @@ function refreshAllBalances() {
     setTimeout(() => {
         btn.classList.remove('loading');
         btn.disabled = false;
+    }, 1500);
+}
+
+function refreshIndividualBalance(coin) {
+    const refreshBtn = document.getElementById(`refresh-individual-${coin.id}`);
+    refreshBtn.classList.add('loading');
+
+    // Reset balance to loading state
+    const loadingEl = document.getElementById(`loading-${coin.id}`);
+    const amountEl = document.getElementById(`amount-${coin.id}`);
+    const errorEl = document.getElementById(`error-${coin.id}`);
+    if (loadingEl) loadingEl.style.display = 'flex';
+    if (amountEl) amountEl.style.display = 'none';
+    if (errorEl) errorEl.style.display = 'none';
+
+    // Reload balance for specific coin
+    loadCoinBalance(coin);
+
+    // Remove loading class after animation completes
+    setTimeout(() => {
+        refreshBtn.classList.remove('loading');
     }, 1500);
 }
 
