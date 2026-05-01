@@ -63,7 +63,11 @@ function createAssetItem(coin) {
                         <span class="spinner"></span>
                         <span>Loading balance...</span>
                     </div>
-                    <div class="asset-amount" id="amount-${coin.id}" style="display: none;"></div>
+                    <div class="asset-amount" id="amount-${coin.id}" style="display: none;"> --.-- ${coin.symbol}</div>
+                    <div class="asset-error" id="error-${coin.id}" style="display: none;">
+                        <span class="error-icon">⚠️</span>
+                        <span class="error-text">Failed to load balance</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -83,31 +87,54 @@ async function loadCoinBalance(coin) {
         const response = await fetch(`/api/dashboard/balance?asset=${coin.id}`);
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            if (response.status === 403) {
+                displayError(coin.id, 'Authentication required');
+            } else {
+                displayError(coin.id, 'Failed to fetch balance');
+            }
+            return;
         }
         
         const data = await response.json();
         displayBalance(coin.id, coin.symbol, data.balance);
     } catch (error) {
         console.error('Error fetching balance:', error);
-        // Fallback to mock data on error
-        const mockBalances = {
-            'monero': 1.5432,
-            'litecoin': 0.8765
-        };
-        const balance = mockBalances[coin.id] || 0;
-        displayBalance(coin.id, coin.symbol, balance);
+        displayError(coin.id, 'Network error');
     }
 }
 
 function displayBalance(coinId, symbol, amount) {
     const loadingEl = document.getElementById(`loading-${coinId}`);
     const amountEl = document.getElementById(`amount-${coinId}`);
+    const errorEl = document.getElementById(`error-${coinId}`);
 
+    // Hide loading and error states
     if (loadingEl) loadingEl.style.display = 'none';
+    if (errorEl) errorEl.style.display = 'none';
+    
+    // Show balance with proper formatting
     if (amountEl) {
         amountEl.textContent = `${amount.toFixed(8)} ${symbol}`;
         amountEl.style.display = 'block';
+    }
+}
+
+function displayError(coinId, message) {
+    const loadingEl = document.getElementById(`loading-${coinId}`);
+    const amountEl = document.getElementById(`amount-${coinId}`);
+    const errorEl = document.getElementById(`error-${coinId}`);
+    const errorTextEl = document.getElementById(`error-${coinId}`).querySelector('.error-text');
+
+    // Hide loading and balance states
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (amountEl) amountEl.style.display = 'none';
+    
+    // Show error state
+    if (errorEl) {
+        if (message) {
+            errorTextEl.textContent = message;
+        }
+        errorEl.style.display = 'flex';
     }
 }
 
@@ -120,8 +147,10 @@ function refreshAllBalances() {
     COINS.forEach(coin => {
         const loadingEl = document.getElementById(`loading-${coin.id}`);
         const amountEl = document.getElementById(`amount-${coin.id}`);
+        const errorEl = document.getElementById(`error-${coin.id}`);
         if (loadingEl) loadingEl.style.display = 'flex';
         if (amountEl) amountEl.style.display = 'none';
+        if (errorEl) errorEl.style.display = 'none';
     });
 
     // Reload balances

@@ -2,10 +2,7 @@ use crate::AppState;
 use crate::entity::tokens;
 use axum::extract::{Query, State};
 use axum::response::Json;
-use axum::{
-    Router,
-    routing::get,
-};
+use axum::{Router, routing::get};
 use axum_extra::extract::cookie::PrivateCookieJar;
 use hyper::StatusCode;
 use sea_orm::EntityTrait;
@@ -34,15 +31,15 @@ async fn get_balance(
     jar: PrivateCookieJar,
 ) -> Result<Json<BalanceResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Check for auth cookie
-    let _user_token = if let Some(user_id) = jar.get("auth") {
+    if let Some(user_id) = jar.get("auth") {
         let token_id_str = user_id.value();
         
         match token_id_str.parse::<Uuid>() {
             Ok(token_id) => {
                 match tokens::Entity::find_by_id(token_id).one(&state.conn).await {
-                    Ok(Some(token)) => {
+                    Ok(Some(_token)) => {
                         // User identified successfully
-                        token
+                        // Continue to balance fetching
                     }
                     Ok(None) => {
                         // Token not found in database
@@ -81,7 +78,8 @@ async fn get_balance(
                 error: "Authentication required".to_string(),
             }),
         ));
-    };
+    }
+    // If we get here, user is authenticated
 
     // Mock implementation - replace with actual balance fetching logic
     // In a real implementation, you would fetch the balance for this specific user (user_token)
@@ -90,7 +88,8 @@ async fn get_balance(
         ("litecoin".to_string(), 0.8765),
     ]);
 
-    let balance = mock_balances.get(&params.asset.to_lowercase())
+    let balance = mock_balances
+        .get(&params.asset.to_lowercase())
         .copied()
         .unwrap_or(0.0);
 

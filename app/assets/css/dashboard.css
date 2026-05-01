@@ -252,6 +252,22 @@ body {
     font-size: 0.9rem;
 }
 
+.asset-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ff6b6b;
+    font-size: 0.9rem;
+}
+
+.error-icon {
+    font-size: 1rem;
+}
+
+.error-text {
+    font-size: 0.85rem;
+}
+
 .spinner {
     width: 16px;
     height: 16px;
