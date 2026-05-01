@@ -22,7 +22,7 @@ fn piconero_to_xmr_string(amount: u64) -> String {
 pub enum MoneroHelperError {
     MoneroRpc(MoneroError),
     Db(sea_orm::DbErr),
-    NotFound(String),
+    // NotFound(String),
 }
 
 impl Display for MoneroHelperError {
@@ -30,7 +30,7 @@ impl Display for MoneroHelperError {
         match self {
             MoneroHelperError::MoneroRpc(err) => write!(f, "Monero RPC error: {}", err),
             MoneroHelperError::Db(err) => write!(f, "Database error: {}", err),
-            MoneroHelperError::NotFound(msg) => write!(f, "Not Found: {}", msg),
+            // MoneroHelperError::NotFound(msg) => write!(f, "Not Found: {}", msg),
         }
     }
 }

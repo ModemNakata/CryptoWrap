@@ -4,7 +4,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use thiserror::Error;
-use tracing::{debug, instrument};
 
 #[derive(Error, Debug)]
 pub enum MoneroError {
@@ -70,9 +69,9 @@ impl MoneroWallet {
     }
 }
 
-fn pretty_json(value: &Value) -> String {
-    serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
-}
+// fn pretty_json(value: &Value) -> String {
+//     serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string())
+// }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transfer {

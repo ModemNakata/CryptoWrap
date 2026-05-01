@@ -22,7 +22,7 @@ mod wallet;
 
 // use tg_notify::Notifier;
 
-use hex;
+// use hex;
 use std::env;
 
 use hex::FromHex;
@@ -31,7 +31,7 @@ use axum::extract::FromRef;
 use axum_extra::extract::cookie::Key;
 
 const AUTH_TAG: &str = "Authentication";
-const PAYMENT_TAG: &'static str = "Payments";
+const PAYMENT_TAG: &str = "Payments";
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -53,13 +53,13 @@ async fn main() -> Result<(), Error> {
         .await
         .expect("Database connection failed");
 
-    let tg_bot_token = env::var("TG_BOT_TOKEN").expect("TG_BOT_TOKEN must be set");
-    let tg_chat_id = env::var("TG_CHAT_ID").expect("TG_CHAT_ID must be set");
+    // let tg_bot_token = env::var("TG_BOT_TOKEN").expect("TG_BOT_TOKEN must be set");
+    // let tg_chat_id = env::var("TG_CHAT_ID").expect("TG_CHAT_ID must be set");
 
     // let tg_notificator = Notifier::new(tg_bot_token, tg_chat_id);
 
     let key_bytes: &[u8] = &Vec::from_hex(&app_key).expect("Invlalid hex string.");
-    let cookie_key = Key::from(&key_bytes);
+    let cookie_key = Key::from(key_bytes);
 
     // let dashboard_state = DashState { cookie_key };
 

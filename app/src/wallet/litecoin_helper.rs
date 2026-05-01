@@ -5,13 +5,14 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, Set,
 };
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::slice::from_ref;
 
 /// Custom error type for Litecoin helper functions.
 #[derive(Debug)]
 pub enum LitecoinHelperError {
     Litecoin(LitecoinError),
     Db(sea_orm::DbErr),
-    NotFound(String),
+    // NotFound(String),
 }
 
 impl Display for LitecoinHelperError {
@@ -19,7 +20,7 @@ impl Display for LitecoinHelperError {
         match self {
             LitecoinHelperError::Litecoin(err) => write!(f, "Litecoin error: {}", err),
             LitecoinHelperError::Db(err) => write!(f, "Database error: {}", err),
-            LitecoinHelperError::NotFound(msg) => write!(f, "Not Found: {}", msg),
+            // LitecoinHelperError::NotFound(msg) => write!(f, "Not Found: {}", msg),
         }
     }
 }
@@ -109,7 +110,7 @@ pub async fn get_free_litecoin_address_with_account_index(
         // 2. If found, check current balance and update initial_balance
         let address = &available_address_model.wallet_address;
         let balance_response = litecoin_wallet_client
-            .get_balance(&[address.clone()])
+            .get_balance(from_ref(address))
             .await?;
 
         let confirmed_balance = balance_response
@@ -150,7 +151,7 @@ pub async fn get_free_litecoin_address_with_account_index(
 
         // Check balance of the newly derived address
         let balance_response = litecoin_wallet_client
-            .get_balance(&[new_address.clone()])
+            .get_balance(from_ref(&new_address))
             .await?;
 
         let confirmed_balance = balance_response

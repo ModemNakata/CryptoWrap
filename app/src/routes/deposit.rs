@@ -11,6 +11,7 @@ use reqwest::Client;
 use rust_decimal::Decimal;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
+use std::slice::from_ref;
 use strum_macros::Display;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -44,13 +45,13 @@ pub async fn create(
         net.to_string()
     } else {
         match deposit_request.currency {
-            Currency::XMR => Network::Monero.to_string(),
-            Currency::LTC => Network::Litecoin.to_string(),
+            Currency::Xmr => Network::Monero.to_string(),
+            Currency::Ltc => Network::Litecoin.to_string(),
         }
     };
 
     // check what coin is selected
-    let wallet_address = if deposit_request.currency == Currency::XMR {
+    let wallet_address = if deposit_request.currency == Currency::Xmr {
         // get monero wallet address for this payment
         // first check if user has monero wallet initialized (e.g. has major wallet index in users db)
         let major_wallet_index = monero_helper::ensure_monero_major_wallet_index_for_user(
@@ -67,7 +68,8 @@ pub async fn create(
         })?;
 
         // use this index to create new subaddress (or reuse first available subaddress under this account (major index))
-        let free_subaddress = monero_helper::get_free_monero_subaddress_with_major_index(
+        // let free_subaddress =
+        monero_helper::get_free_monero_subaddress_with_major_index(
             major_wallet_index,
             &state.monero_wallet,
             &state.conn,
@@ -78,10 +80,11 @@ pub async fn create(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Failed to get Monero subaddress: {}", e),
             )
-        })?;
+            // })?;
+        })?
 
-        free_subaddress
-    } else if deposit_request.currency == Currency::LTC {
+        // free_subaddress
+    } else if deposit_request.currency == Currency::Ltc {
         // get litecoin wallet address for this payment
         // first check if user has litecoin wallet initialized (e.g. has account index in tokens db)
         let account_index = litecoin_helper::ensure_litecoin_account_index_for_user(
@@ -98,7 +101,8 @@ pub async fn create(
         })?;
 
         // use this index to create new deposit address (or reuse first available address under this account)
-        let free_deposit_address = litecoin_helper::get_free_litecoin_address_with_account_index(
+        // let free_deposit_address =
+        litecoin_helper::get_free_litecoin_address_with_account_index(
             account_index,
             &state.litecoin_wallet,
             &state.conn,
@@ -109,9 +113,10 @@ pub async fn create(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Failed to get Litecoin address: {}", e),
             )
-        })?;
+        })?
+        // })?;
 
-        free_deposit_address
+        // free_deposit_address
     } else {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -273,7 +278,7 @@ pub async fn check(
 
             let balance_response = state
                 .litecoin_wallet
-                .get_balance(&[wallet_address.clone()])
+                .get_balance(from_ref(&wallet_address))
                 .await
                 .map_err(|e| {
                     (
@@ -309,12 +314,7 @@ pub async fn check(
                 ("waiting".to_string(), false)
             };
 
-            let amount_received_litoshi = if total_balance > initial_balance {
-                total_balance - initial_balance
-            } else {
-                0
-            };
-
+            let amount_received_litoshi = total_balance.saturating_sub(initial_balance);
             let amount_received = litoshi_to_ltc(amount_received_litoshi);
 
             // confirmations is Monero-specific; skip for Litecoin
@@ -384,10 +384,10 @@ pub async fn check(
         // ));
         // ===== NOTIFICATION
 
-        if let Some(url) = notify_url {
-            if let Err(e) = notify_shop(&url, &deposit_checked).await {
-                tracing::warn!("Failed to notify shop: {}", e);
-            }
+        if let Some(url) = notify_url
+            && let Err(e) = notify_shop(&url, &deposit_checked).await
+        {
+            tracing::warn!("Failed to notify shop: {}", e);
         }
     };
 
@@ -488,7 +488,6 @@ impl DepositStatus {
     "txids":"[]", // just for example matter
     "is_finalized":false,
 }))]
-
 pub struct CheckDepositResponse {
     #[schema(value_type = String)]
     pub deposit_uuid: Uuid,
@@ -524,8 +523,8 @@ pub struct CreateDepositResponse {
 #[derive(Serialize, Deserialize, ToSchema, Display, Debug, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Currency {
-    XMR,
-    LTC,
+    Xmr,
+    Ltc,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Display)]
@@ -543,15 +542,15 @@ pub enum FiatCurrency {
     Rub,
 }
 
-impl FiatCurrency {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            FiatCurrency::Usd => "usd",
-            FiatCurrency::Eur => "eur",
-            FiatCurrency::Rub => "rub",
-        }
-    }
-}
+// impl FiatCurrency {
+//     pub fn as_str(&self) -> &'static str {
+//         match self {
+//             FiatCurrency::Usd => "usd",
+//             FiatCurrency::Eur => "eur",
+//             FiatCurrency::Rub => "rub",
+//         }
+//     }
+// }
 
 fn currency_to_coin_id(currency: &str) -> String {
     match currency.to_uppercase().as_str() {

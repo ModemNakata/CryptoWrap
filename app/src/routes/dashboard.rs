@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::AppState;
 use crate::entity::tokens;
 use axum::extract::State;
-use sea_orm::{EntityTrait, QueryFilter};
+use sea_orm::EntityTrait;
 
 #[derive(Template, WebTemplate)]
 #[template(path = "dashboard.html")]
