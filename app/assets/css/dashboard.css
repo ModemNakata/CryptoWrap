@@ -229,8 +229,8 @@ body {
 
 .asset-icon .refresh-individual {
     position: absolute;
-    top: -10;
-    left: -10;
+    /* top: -10; */
+    /* left: -10; */
     width: 110%;
     height: 110%;
     background: rgba(0, 0, 0, 0.75);
