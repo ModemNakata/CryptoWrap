@@ -206,3 +206,18 @@ pub struct GetHeightResponse {
 pub async fn get_height(wallet: &MoneroWallet) -> Result<GetHeightResponse, MoneroError> {
     wallet.rpc_request("get_height", json!({})).await
 }
+
+pub async fn get_account_balance(
+    wallet: &MoneroWallet,
+    major_index: i32,
+) -> Result<AccountBalanceResponse, MoneroError> {
+    wallet
+        .rpc_request("get_balance", json!({"account_index": major_index}))
+        .await
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountBalanceResponse {
+    pub unlocked_balance: u64, // atomic units (e.g. piconeros for monero, satoshi for btc, litoshi for ltc, etc...)
+                               // use term `unlocked` just like in monero wallet rpc (docs), other coins implementation can handle it differently
+}

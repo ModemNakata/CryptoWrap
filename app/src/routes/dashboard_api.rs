@@ -1,5 +1,7 @@
 use crate::AppState;
 use crate::entity::tokens;
+use crate::wallet::monero as monero_wallet;
+use crate::wallet::monero_helper;
 use axum::extract::{Query, State};
 use axum::response::Json;
 use axum::{Router, routing::get};
@@ -7,6 +9,7 @@ use axum_extra::extract::cookie::PrivateCookieJar;
 use hyper::StatusCode;
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
+use tower::retry::backoff::ExponentialBackoffMaker;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -17,7 +20,7 @@ struct GetBalanceParams {
 #[derive(Debug, Serialize)]
 struct BalanceResponse {
     asset: String,
-    balance: f64,
+    balance: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -31,15 +34,19 @@ async fn get_balance(
     jar: PrivateCookieJar,
 ) -> Result<Json<BalanceResponse>, (StatusCode, Json<ErrorResponse>)> {
     // Check for auth cookie
+
+    let user_entry;
+
     if let Some(user_id) = jar.get("auth") {
         let token_id_str = user_id.value();
 
         match token_id_str.parse::<Uuid>() {
             Ok(token_id) => {
                 match tokens::Entity::find_by_id(token_id).one(&state.conn).await {
-                    Ok(Some(_token)) => {
+                    Ok(Some(token)) => {
                         // User identified successfully
                         // Continue to balance fetching
+                        user_entry = token
                     }
                     Ok(None) => {
                         // Token not found in database
@@ -98,13 +105,24 @@ async fn get_balance(
     // filter by asset name
     match &params.asset.to_lowercase() {
         s if s == "monero" => {
-            balance = 1.337;
+            // balance = 1.337;
+            let balance_in_piconero = monero_wallet::get_account_balance(
+                &state.monero_wallet,
+                user_entry
+                    .monero_major_index
+                    .expect("User has no monero account yet"),
+            )
+            .await
+            .expect("Failed to get Monero balance for account")
+            .unlocked_balance;
+            balance = monero_helper::piconero_to_xmr_string(balance_in_piconero);
+            // show decimal precision (?)
         }
         s if s == "litecoin" => {
-            balance = 420.69;
+            balance = "420.69".to_string();
         }
         _ => {
-            balance = 0.0;
+            balance = "0.0".to_string();
         }
     };
 

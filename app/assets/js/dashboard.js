@@ -124,7 +124,8 @@ function displayBalance(coinId, symbol, amount) {
     
     // Show balance with proper formatting
     if (amountEl) {
-        amountEl.textContent = `${amount.toFixed(8)} ${symbol}`;
+        // amountEl.textContent = `${amount.toFixed(8)} ${symbol}`;
+        amountEl.textContent = `${amount} ${symbol}`;
         amountEl.style.display = 'block';
     }
 }

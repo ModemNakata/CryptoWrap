@@ -5,7 +5,7 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, Qu
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
-fn piconero_to_xmr_string(amount: u64) -> String {
+pub fn piconero_to_xmr_string(amount: u64) -> String {
     let whole = amount / 1_000_000_000_000;
     let fraction = amount % 1_000_000_000_000;
     if fraction == 0 {
