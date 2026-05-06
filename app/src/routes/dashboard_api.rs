@@ -9,7 +9,6 @@ use axum_extra::extract::cookie::PrivateCookieJar;
 use hyper::StatusCode;
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
-use tower::retry::backoff::ExponentialBackoffMaker;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
