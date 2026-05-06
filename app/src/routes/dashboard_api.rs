@@ -106,15 +106,19 @@ async fn get_balance(
     match &params.asset.to_lowercase() {
         s if s == "monero" => {
             // balance = 1.337;
-            let balance_in_piconero = monero_wallet::get_account_balance(
+            let user_major_index = monero_helper::ensure_monero_major_wallet_index_for_user(
+                &user_entry,
                 &state.monero_wallet,
-                user_entry
-                    .monero_major_index
-                    .expect("User has no monero account yet"),
+                &state.conn,
             )
             .await
-            .expect("Failed to get Monero balance for account")
-            .unlocked_balance;
+            .expect("Monero wallet error");
+
+            let balance_in_piconero =
+                monero_wallet::get_account_balance(&state.monero_wallet, user_major_index)
+                    .await
+                    .expect("Failed to get Monero balance for account")
+                    .unlocked_balance;
             balance = monero_helper::piconero_to_xmr_string(balance_in_piconero);
             // show decimal precision (?)
         }

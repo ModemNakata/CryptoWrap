@@ -209,7 +209,7 @@ pub async fn get_height(wallet: &MoneroWallet) -> Result<GetHeightResponse, Mone
 
 pub async fn get_account_balance(
     wallet: &MoneroWallet,
-    major_index: i32,
+    major_index: u32,
 ) -> Result<AccountBalanceResponse, MoneroError> {
     wallet
         .rpc_request("get_balance", json!({"account_index": major_index}))
