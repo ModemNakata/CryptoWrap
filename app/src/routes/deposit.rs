@@ -226,7 +226,8 @@ pub async fn check(
 
     // Check what coin this deposit is for
     let (amount_received, payment_status, confirmations, txids, should_finalize) =
-        if deposit.currency == "XMR" {
+        if deposit.currency.to_uppercase() == "XMR" {
+            // Xmr
             // === MONERO ===
             let address_entry = monero_wallet::Entity::find()
                 .filter(monero_wallet::Column::WalletAddress.eq(&wallet_address))
@@ -264,7 +265,8 @@ pub async fn check(
                 Some(result.txids),
                 should_finalize,
             )
-        } else if deposit.currency == "LTC" {
+        } else if deposit.currency.to_uppercase() == "LTC" {
+            // Ltc
             // === LITECOIN ===
             let ltc_entry = litecoin_wallet::Entity::find()
                 .filter(litecoin_wallet::Column::WalletAddress.eq(&wallet_address))
