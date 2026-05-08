@@ -10,7 +10,7 @@ use axum::response::Json;
 use axum::{Router, routing::get};
 use axum_extra::extract::cookie::PrivateCookieJar;
 use hyper::StatusCode;
-use sea_orm::{ColumnTrait, EntityTrait, ExprTrait, QueryFilter, QuerySelect};
+use sea_orm::{ColumnTrait, EntityTrait, ExprTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 // use std::slice::from_ref;
 use uuid::Uuid;
