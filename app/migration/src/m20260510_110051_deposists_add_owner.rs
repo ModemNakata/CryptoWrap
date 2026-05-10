@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Deposits::Table)
                     // uuid from tokens table (not foreign key, simple uuid-string field) //
-                    .add_column(uuid("owner_id").null())
+                    .add_column(uuid("owner_id").not_null())
                     .to_owned(),
             )
             .await

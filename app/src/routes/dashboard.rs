@@ -11,14 +11,17 @@ use hyper::StatusCode;
 use uuid::Uuid;
 // use tower_cookies::Cookies;
 use crate::AppState;
-use crate::entity::tokens;
+use crate::entity::{deposits, tokens};
 use axum::extract::State;
-use sea_orm::EntityTrait;
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter};
 
 #[derive(Template, WebTemplate)]
 #[template(path = "dashboard.html")]
 struct DashboardTemplate {
     user_uuid: String,
+    member_since: String,
+    deposit_requests_count: String,
+    successful_deposits_count: String,
 }
 
 // async fn dashboard(cookies: Cookies) -> Response {
@@ -87,10 +90,29 @@ async fn dashboard(state: State<AppState>, jar: PrivateCookieJar) -> (PrivateCoo
     // user database entry is available to render dashboard
     // user_token_entry
 
+    let member_since = user_token_entry.created_at.format("%Y-%m-%d").to_string();
+
+    let deposit_requests_count = deposits::Entity::find()
+        .filter(deposits::Column::OwnerId.eq(user_token_entry.id))
+        .count(&state.conn)
+        .await
+        .unwrap_or(0)
+        .to_string();
+    let successful_deposits_count = deposits::Entity::find()
+        .filter(deposits::Column::OwnerId.eq(user_token_entry.id))
+        .filter(deposits::Column::PaymentStatus.eq("confirmed"))
+        .count(&state.conn)
+        .await
+        .unwrap_or(0)
+        .to_string();
+
     (
         jar,
         DashboardTemplate {
             user_uuid: user_token_entry.id.to_string(),
+            member_since,
+            deposit_requests_count,
+            successful_deposits_count,
         }
         .into_response(),
     )

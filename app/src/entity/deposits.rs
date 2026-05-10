@@ -18,7 +18,7 @@ pub struct Model {
     pub updated_at: Option<DateTime>,
     pub finalized: bool,
     pub notify_url: Option<String>,
-    pub owner_id: Option<Uuid>,
+    pub owner_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

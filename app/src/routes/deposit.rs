@@ -135,6 +135,7 @@ pub async fn create(
         // another layer of protection can be to implement grace period of re-use (for example: 1 hour of wait at least before using is_available address)
         //  --- moved min_blockchain_height to blockchain_height from monero_wallet using another sql query
         notify_url: Set(deposit_request.notify_url.clone()),
+        owner_id: Set(user_row.id),
         ..Default::default()
     };
     let deposit = deposit.insert(&state.conn).await.unwrap();
